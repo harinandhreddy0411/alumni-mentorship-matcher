@@ -580,3 +580,32 @@
     transform: translate(4px, 4px);
     box-shadow: 0 0 0 black;
 }
+.alumni-admin-nav-grid {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+.alumni-admin-nav-card {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 3px solid black;
+    padding: 20px;
+    background-color: white;
+    color: black;
+    box-shadow: 6px 6px 0 navy;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease;
+}
+.alumni-admin-nav-card:hover {
+    background-color: gold;
+}
+.alumni-admin-nav-card:active {
+    transform: translate(6px, 6px);
+    box-shadow: 0 0 0 navy;
+}
