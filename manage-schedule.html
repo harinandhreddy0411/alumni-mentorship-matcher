@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni Mentorship Matcher | Capacity Control</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="alumni-ultra-body">
+    
+    <div class="alumni-fixed-blueprint"></div>
+    <div class="alumni-orbiting-wireframe-alpha"></div>
+    <div class="alumni-orbiting-wireframe-beta"></div>
+
+    <div class="alumni-marquee-band">
+        <div class="alumni-marquee-track">
+            ALUMNI MENTORSHIP MATCHER • BRIDGING ACADEMICS AND INDUSTRY • FOSTERING PROFESSIONAL NETWORKS • DATABASE MANAGEMENT SYSTEM PROJECT • EMPOWERING CURRENT STUDENTS • ALUMNI MENTORSHIP MATCHER • BRIDGING ACADEMICS AND INDUSTRY • FOSTERING PROFESSIONAL NETWORKS • DATABASE MANAGEMENT SYSTEM PROJECT • EMPOWERING CURRENT STUDENTS •
+        </div>
+    </div>
+
+    <header class="alumni-ultra-header">
+        <h1 class="alumni-ultra-brand">Alumni Matcher</h1>
+        <nav class="alumni-ultra-controls">
+            <button class="alumni-btn-signin">Sign In</button>
+            <button class="alumni-btn-logout">Logout</button>
+        </nav>
+    </header>
+    
+    <main class="alumni-ultra-workspace">
+        <div class="alumni-3d-auth-card">
+            <section class="alumni-ultra-module">
+                <h2 class="alumni-ultra-title">Capacity Control</h2>
+                <form class="alumni-ultra-form">
+                    <label class="alumni-ultra-label" for="sched-status">Accepting New Mentees</label>
+                    <select class="alumni-ultra-select" id="sched-status" required>
+                        <option value="active">Active - Open for Requests</option>
+                        <option value="paused">Paused - At Capacity</option>
+                    </select>
+
+                    <label class="alumni-ultra-label" for="sched-limit">Maximum Active Mentees</label>
+                    <input class="alumni-ultra-input" type="number" id="sched-limit" min="1" max="10" value="3" required>
+
+                    <label class="alumni-ultra-label" for="sched-hours">Preferred Contact Hours</label>
+                    <input class="alumni-ultra-input" type="text" id="sched-hours" placeholder="e.g. Weekends 10AM-12PM" required>
+
+                    <button class="alumni-ultra-submit" type="submit">Enforce Constraints</button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <script src="system-core.js"></script>
+</body>
+</html>
