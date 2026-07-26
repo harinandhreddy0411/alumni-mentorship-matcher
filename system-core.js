@@ -55,15 +55,35 @@ const systemDatabase = {
     },
     terminateSession: function() {
         localStorage.setItem('alumni_sessions_table', JSON.stringify(null));
+    },
+    validateActiveSession: function() {
+        return JSON.parse(localStorage.getItem('alumni_sessions_table'));
     }
 };
 
-// Initialize the mock database on load
 systemDatabase.initializeSchema();
 
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- 1. GLOBAL NAVIGATION CONTROLS ---
+    const activeSession = systemDatabase.validateActiveSession();
+    const signinBtn = document.querySelector('.alumni-btn-signin');
+    const navControls = document.querySelector('.alumni-ultra-controls');
+    const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/';
+
+    if (activeSession && signinBtn) {
+        signinBtn.style.display = 'none';
+    }
+
+    if (!isIndexPage && navControls) {
+        const backBtn = document.createElement('button');
+        backBtn.className = 'alumni-btn-back';
+        backBtn.textContent = 'Back';
+        backBtn.addEventListener('click', () => {
+            window.history.back();
+        });
+        navControls.insertBefore(backBtn, navControls.firstChild);
+    }
+
     const logoutControls = document.querySelectorAll('.alumni-btn-logout');
     logoutControls.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -72,14 +92,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const signinControls = document.querySelectorAll('.alumni-btn-signin');
-    signinControls.forEach(btn => {
-        btn.addEventListener('click', () => {
+    if (signinBtn) {
+        signinBtn.addEventListener('click', () => {
             window.location.href = 'index.html';
         });
-    });
+    }
 
-    // --- 2. INDEX.HTML (Login & Registration) ---
     const authUsernameInput = document.getElementById('auth-username');
     if (authUsernameInput) {
         const authForm = authUsernameInput.closest('form');
@@ -114,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 3. STUDENT DASHBOARD ACTIONS ---
     const requestMatchBtns = document.querySelectorAll('.alumni-btn-action');
     requestMatchBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -122,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- 4. REQUEST MENTOR FORM ---
     const reqMentorInput = document.getElementById('req-mentor');
     if (reqMentorInput) {
         const reqForm = reqMentorInput.closest('form');
@@ -133,12 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 5. ALUMNI DASHBOARD ACTIONS ---
     const acceptBtns = document.querySelectorAll('.alumni-btn-accept');
     acceptBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const card = e.target.closest('.alumni-request-card');
-            card.style.display = 'none'; // Visually removes the request from the feed
+            card.style.display = 'none';
             alert('Match Accepted. Connection Established.');
         });
     });
@@ -147,12 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
     declineBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const card = e.target.closest('.alumni-request-card');
-            card.style.display = 'none'; // Visually removes the request from the feed
+            card.style.display = 'none';
             alert('Match Declined and removed from queue.');
         });
     });
 
-    // --- 6. MANAGE SCHEDULE FORM ---
     const schedStatusInput = document.getElementById('sched-status');
     if (schedStatusInput) {
         const schedForm = schedStatusInput.closest('form');
@@ -163,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 7. PROFILE SETTINGS FORM ---
     const profileNameInput = document.getElementById('profile-name');
     if (profileNameInput) {
         const profileForm = profileNameInput.closest('form');
@@ -173,7 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 8. ADMIN USER CREATION FORM ---
     const adminAddRoleInput = document.getElementById('admin-add-role');
     if (adminAddRoleInput) {
         const adminAddForm = adminAddRoleInput.closest('form');
@@ -185,13 +197,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 9. ADMIN TABLE ACTIONS (Terminate/Cancel) ---
     const terminateBtns = document.querySelectorAll('.alumni-btn-terminate');
     terminateBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const row = e.target.closest('tr');
             if (row) {
-                row.style.display = 'none'; // Visually removes the record from the table
+                row.style.display = 'none';
                 alert('System Record Terminated.');
             }
         });
