@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alumni Mentorship Matcher | Mentor Portal</title>
+    <title>Alumni Mentorship Matcher | Mentor Hub</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="alumni-ultra-body">
@@ -45,34 +45,46 @@
 
             <div class="alumni-ultra-divider"></div>
 
+            <!-- NEW ACCOUNT CONTROLS MODULE -->
+            <section class="alumni-directory-section">
+                <h3 class="alumni-directory-heading">Account Controls</h3>
+                <div class="alumni-admin-nav-grid">
+                    <a href="profile.html" class="alumni-admin-nav-card">Update Profile</a>
+                    <a href="manage-schedule.html" class="alumni-admin-nav-card">Capacity Constraints</a>
+                </div>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
             <section class="alumni-directory-section">
                 <h3 class="alumni-directory-heading">Incoming Match Requests</h3>
-                <div class="alumni-requests-list">
-                    
-                    <article class="alumni-request-card">
+                
+                <div class="alumni-feed-layout">
+                    <!-- Request Card 1 -->
+                    <div class="alumni-request-card">
                         <div class="alumni-request-info">
-                            <h4 class="alumni-request-name">David Chen</h4>
-                            <p class="alumni-request-major">B.Tech Computer Science (S3)</p>
-                            <p class="alumni-request-message">"I am currently studying Database Management Systems and looking for guidance on backend architecture and API design from an industry perspective."</p>
+                            <h3 class="alumni-card-name">David Chen</h3>
+                            <p class="alumni-card-track" style="color: navy; font-weight: 800;">B.Tech Computer Science (S3)</p>
+                            <blockquote class="alumni-request-pitch">"I am currently studying Database Management Systems and looking for guidance on backend architecture and API design from an industry perspective."</blockquote>
                         </div>
                         <div class="alumni-request-actions">
                             <button class="alumni-btn-accept">Accept Match</button>
                             <button class="alumni-btn-decline">Decline</button>
                         </div>
-                    </article>
+                    </div>
 
-                    <article class="alumni-request-card">
+                    <!-- Request Card 2 -->
+                    <div class="alumni-request-card">
                         <div class="alumni-request-info">
-                            <h4 class="alumni-request-name">Priya Patel</h4>
-                            <p class="alumni-request-major">B.Tech Artificial Intelligence (S5)</p>
-                            <p class="alumni-request-message">"I am highly interested in your experience transitioning from software engineering to data architecture. Would love to schedule a brief call."</p>
+                            <h3 class="alumni-card-name">Priya Patel</h3>
+                            <p class="alumni-card-track" style="color: navy; font-weight: 800;">B.Tech Artificial Intelligence (S5)</p>
+                            <blockquote class="alumni-request-pitch">"I am highly interested in your experience transitioning from software engineering to data architecture. Would love to schedule a brief call."</blockquote>
                         </div>
                         <div class="alumni-request-actions">
                             <button class="alumni-btn-accept">Accept Match</button>
                             <button class="alumni-btn-decline">Decline</button>
                         </div>
-                    </article>
-
+                    </div>
                 </div>
             </section>
 
