@@ -562,3 +562,21 @@
     box-shadow: none;
     transform: none;
 }
+.alumni-btn-back {
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    background-color: lightgray;
+    color: black;
+    border: 3px solid black;
+    padding: 10px 20px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0 black;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    margin-right: 15px;
+}
+.alumni-btn-back:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0 0 0 black;
+}
