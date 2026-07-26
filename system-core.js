@@ -68,16 +68,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeSession = systemDatabase.validateActiveSession();
     const signinBtns = document.querySelectorAll('.alumni-btn-signin');
     const navControls = document.querySelector('.alumni-ultra-controls');
-    const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('alumni-mentorship-matcher/');
+    
+    // BULLETPROOF CHECK: If the auth form exists, we are on the index page.
+    const isIndexPage = document.getElementById('auth-username') !== null;
 
-    // FORCE HIDE SIGN IN BUTTON IF LOGGED IN
+    // 1. FORCE HIDE SIGN IN BUTTON IF LOGGED IN
     if (activeSession) {
         signinBtns.forEach(btn => {
             btn.style.setProperty('display', 'none', 'important');
         });
     }
 
-    // INJECT BACK BUTTON ON INTERNAL PAGES
+    // 2. INJECT BACK BUTTON ON INTERNAL PAGES ONLY
     if (!isIndexPage && navControls) {
         const backBtn = document.createElement('button');
         backBtn.className = 'alumni-btn-back';
@@ -88,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navControls.insertBefore(backBtn, navControls.firstChild);
     }
 
+    // 3. NAVIGATION CONTROLS
     const logoutControls = document.querySelectorAll('.alumni-btn-logout');
     logoutControls.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -102,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // 4. FORMS & ACTIONS
     const authUsernameInput = document.getElementById('auth-username');
     if (authUsernameInput) {
         const authForm = authUsernameInput.closest('form');
