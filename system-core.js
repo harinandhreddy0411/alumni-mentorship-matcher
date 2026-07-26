@@ -66,14 +66,18 @@ systemDatabase.initializeSchema();
 document.addEventListener('DOMContentLoaded', () => {
     
     const activeSession = systemDatabase.validateActiveSession();
-    const signinBtn = document.querySelector('.alumni-btn-signin');
+    const signinBtns = document.querySelectorAll('.alumni-btn-signin');
     const navControls = document.querySelector('.alumni-ultra-controls');
-    const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/';
+    const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('alumni-mentorship-matcher/');
 
-    if (activeSession && signinBtn) {
-        signinBtn.style.display = 'none';
+    // FORCE HIDE SIGN IN BUTTON IF LOGGED IN
+    if (activeSession) {
+        signinBtns.forEach(btn => {
+            btn.style.setProperty('display', 'none', 'important');
+        });
     }
 
+    // INJECT BACK BUTTON ON INTERNAL PAGES
     if (!isIndexPage && navControls) {
         const backBtn = document.createElement('button');
         backBtn.className = 'alumni-btn-back';
@@ -92,11 +96,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    if (signinBtn) {
-        signinBtn.addEventListener('click', () => {
+    signinBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
             window.location.href = 'index.html';
         });
-    }
+    });
 
     const authUsernameInput = document.getElementById('auth-username');
     if (authUsernameInput) {
