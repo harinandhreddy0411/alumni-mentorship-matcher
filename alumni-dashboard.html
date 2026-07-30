@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="alumni-ultra-body">
-    
+
     <div class="alumni-fixed-blueprint"></div>
     <div class="alumni-orbiting-wireframe-alpha"></div>
     <div class="alumni-orbiting-wireframe-beta"></div>
@@ -25,10 +25,10 @@
             <button class="alumni-btn-logout">Logout</button>
         </nav>
     </header>
-    
+
     <main class="alumni-ultra-workspace">
         <div class="alumni-dashboard-matrix">
-            
+
             <section class="alumni-dashboard-header-panel">
                 <h2 class="alumni-ultra-title">Mentor Hub</h2>
                 <div class="alumni-dashboard-stats">
@@ -36,16 +36,16 @@
                         <span class="alumni-stat-label">Pending Requests</span>
                         <span class="alumni-stat-value">2</span>
                     </div>
-                    <div class="alumni-stat-block">
+                    <!-- now a real anchor link instead of a dead number -->
+                    <a href="#my-mentees" class="alumni-stat-block" style="text-decoration: none; color: inherit; cursor: pointer;">
                         <span class="alumni-stat-label">Active Mentees</span>
                         <span class="alumni-stat-value">1</span>
-                    </div>
+                    </a>
                 </div>
             </section>
 
             <div class="alumni-ultra-divider"></div>
 
-            <!-- NEW ACCOUNT CONTROLS MODULE -->
             <section class="alumni-directory-section">
                 <h3 class="alumni-directory-heading">Account Controls</h3>
                 <div class="alumni-admin-nav-grid">
@@ -58,7 +58,7 @@
 
             <section class="alumni-directory-section">
                 <h3 class="alumni-directory-heading">Incoming Match Requests</h3>
-                
+
                 <div class="alumni-feed-layout">
                     <!-- Request Card 1 -->
                     <div class="alumni-request-card">
@@ -83,6 +83,28 @@
                         <div class="alumni-request-actions">
                             <button class="alumni-btn-accept">Accept Match</button>
                             <button class="alumni-btn-decline">Decline</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
+            <!-- NEW: outcome screen after accepting — answers "where do accepted mentees go?" -->
+            <section class="alumni-directory-section" id="my-mentees">
+                <h3 class="alumni-directory-heading">My Active Mentees</h3>
+
+                <div class="alumni-feed-layout">
+                    <div class="alumni-request-card">
+                        <div class="alumni-request-info">
+                            <h3 class="alumni-card-name">Marcus Kim</h3>
+                            <p class="alumni-card-track" style="color: navy; font-weight: 800;">B.Tech Data Science (S4)</p>
+                            <p class="alumni-request-pitch">
+                                <span class="alumni-status-indicator status-active">Active Since Jul 12</span>
+                            </p>
+                        </div>
+                        <div class="alumni-request-actions">
+                            <button class="alumni-btn-action">View Pitch</button>
                         </div>
                     </div>
                 </div>
