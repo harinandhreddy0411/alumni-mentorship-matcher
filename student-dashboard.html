@@ -36,10 +36,11 @@
                         <span class="alumni-stat-label">Active Requests</span>
                         <span class="alumni-stat-value">0</span>
                     </div>
-                    <div class="alumni-stat-block">
+                    <!-- now a real anchor link instead of a dead number -->
+                    <a href="#my-mentor" class="alumni-stat-block" style="text-decoration: none; color: inherit; cursor: pointer;">
                         <span class="alumni-stat-label">Connected Mentors</span>
                         <span class="alumni-stat-value">0</span>
-                    </div>
+                    </a>
                 </div>
             </section>
 
@@ -86,6 +87,24 @@
                         <p class="alumni-card-track" style="color: navy;">Cybersecurity</p>
                         <p class="alumni-card-year">Class of 2022</p>
                         <button class="alumni-btn-action">Request Match</button>
+                    </div>
+                </div>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
+            <!-- NEW: outcome screen after acceptance — answers "where does my accepted mentor show up?" -->
+            <section class="alumni-directory-section" id="my-mentor">
+                <h3 class="alumni-directory-heading">My Mentor</h3>
+
+                <div class="alumni-grid-layout">
+                    <div class="alumni-mentor-card">
+                        <div class="alumni-card-banner" style="background-color: royalblue;"></div>
+                        <div class="alumni-card-avatar">—</div>
+                        <h3 class="alumni-card-name">No Active Mentor Yet</h3>
+                        <p class="alumni-card-track" style="color: darkslategray;">Your accepted mentor will appear here.</p>
+                        <p class="alumni-card-year">&nbsp;</p>
+                        <button class="alumni-btn-action" disabled style="opacity: 0.5; cursor: not-allowed;">Contact Mentor</button>
                     </div>
                 </div>
             </section>
