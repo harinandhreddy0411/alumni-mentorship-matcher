@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni Mentorship Matcher | Manage Users</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="alumni-ultra-body">
+    
+    <div class="alumni-fixed-blueprint"></div>
+    <div class="alumni-orbiting-wireframe-alpha"></div>
+    <div class="alumni-orbiting-wireframe-beta"></div>
+
+    <div class="alumni-marquee-band">
+        <div class="alumni-marquee-track">
+            SYSTEM ADMIN CONSOLE • DATABASE OVERSIGHT AND MANAGEMENT • ROOT ACCESS GRANTED • SYSTEM ADMIN CONSOLE • DATABASE OVERSIGHT AND MANAGEMENT • ROOT ACCESS GRANTED • SYSTEM ADMIN CONSOLE • DATABASE OVERSIGHT AND MANAGEMENT • ROOT ACCESS GRANTED •
+        </div>
+    </div>
+
+    <header class="alumni-ultra-header">
+        <h1 class="alumni-ultra-brand">Alumni Matcher</h1>
+        <nav class="alumni-ultra-controls">
+            <button class="alumni-btn-signin">Sign In</button>
+            <button class="alumni-btn-logout">Logout</button>
+        </nav>
+    </header>
+    
+    <main class="alumni-ultra-workspace">
+        <div class="alumni-dashboard-matrix">
+            
+            <section class="alumni-dashboard-header-panel">
+                <h2 class="alumni-ultra-title">User Management</h2>
+            </section>
+
+            <section class="alumni-ultra-module">
+                <h3 class="alumni-directory-heading">Provision New User</h3>
+                <form class="alumni-ultra-form">
+                    <label class="alumni-ultra-label" for="admin-add-role">Assign Role</label>
+                    <select class="alumni-ultra-select" id="admin-add-role" required>
+                        <option value="student">Student</option>
+                        <option value="alumni">Alumni</option>
+                        <option value="admin">System Admin</option>
+                    </select>
+
+                    <label class="alumni-ultra-label" for="admin-add-username">System Username</label>
+                    <input class="alumni-ultra-input" type="text" id="admin-add-username" required>
+
+                    <label class="alumni-ultra-label" for="admin-add-password">Temporary Password</label>
+                    <input class="alumni-ultra-input" type="password" id="admin-add-password" required>
+
+                    <button class="alumni-ultra-submit" type="submit">Inject Record</button>
+                </form>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
+            <section class="alumni-directory-section">
+                <h3 class="alumni-directory-heading">Global User Registry</h3>
+                <div class="alumni-table-container">
+                    <table class="alumni-admin-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="alumni-cell-id">USR-8832</td>
+                                <td>d_chen24</td>
+                                <td><span class="alumni-badge alumni-badge-student">Student</span></td>
+                                <td>
+                                    <div class="alumni-table-actions">
+                                        <button class="alumni-btn-terminate">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="alumni-cell-id">USR-9105</td>
+                                <td>s_jenkins_alumni</td>
+                                <td><span class="alumni-badge alumni-badge-alumni">Alumni</span></td>
+                                <td>
+                                    <div class="alumni-table-actions">
+                                        <button class="alumni-btn-terminate">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="alumni-cell-id">USR-7741</td>
+                                <td>admin_root</td>
+                                <td><span class="alumni-badge alumni-badge-admin">Admin</span></td>
+                                <td>
+                                    <div class="alumni-table-actions">
+                                        <button class="alumni-btn-edit" disabled>Locked</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="system-core.js"></script>
+</body>
+</html>

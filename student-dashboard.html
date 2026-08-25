@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alumni Mentorship Matcher | Student Hub</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="alumni-ultra-body">
+
+    <div class="alumni-fixed-blueprint"></div>
+    <div class="alumni-orbiting-wireframe-alpha"></div>
+    <div class="alumni-orbiting-wireframe-beta"></div>
+
+    <div class="alumni-marquee-band">
+        <div class="alumni-marquee-track">
+            ALUMNI MENTORSHIP MATCHER • BRIDGING ACADEMICS AND INDUSTRY • FOSTERING PROFESSIONAL NETWORKS • DATABASE MANAGEMENT SYSTEM PROJECT • EMPOWERING CURRENT STUDENTS • ALUMNI MENTORSHIP MATCHER • BRIDGING ACADEMICS AND INDUSTRY • FOSTERING PROFESSIONAL NETWORKS • DATABASE MANAGEMENT SYSTEM PROJECT • EMPOWERING CURRENT STUDENTS •
+        </div>
+    </div>
+
+    <header class="alumni-ultra-header">
+        <h1 class="alumni-ultra-brand">Alumni Matcher</h1>
+        <nav class="alumni-ultra-controls">
+            <button class="alumni-btn-signin">Sign In</button>
+            <button class="alumni-btn-logout">Logout</button>
+        </nav>
+    </header>
+
+    <main class="alumni-ultra-workspace">
+        <div class="alumni-dashboard-matrix">
+
+            <section class="alumni-dashboard-header-panel">
+                <h2 class="alumni-ultra-title">Student Hub</h2>
+                <div class="alumni-dashboard-stats">
+                    <div class="alumni-stat-block">
+                        <span class="alumni-stat-label">Active Requests</span>
+                        <span class="alumni-stat-value">0</span>
+                    </div>
+                    <!-- now a real anchor link instead of a dead number -->
+                    <a href="#my-mentor" class="alumni-stat-block" style="text-decoration: none; color: inherit; cursor: pointer;">
+                        <span class="alumni-stat-label">Connected Mentors</span>
+                        <span class="alumni-stat-value">0</span>
+                    </a>
+                </div>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
+            <section class="alumni-directory-section">
+                <h3 class="alumni-directory-heading">Account Controls</h3>
+                <div class="alumni-admin-nav-grid">
+                    <a href="profile.html" class="alumni-admin-nav-card">Update Profile</a>
+                </div>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
+            <section class="alumni-directory-section">
+                <h3 class="alumni-directory-heading">Available Alumni Network</h3>
+
+                <div class="alumni-grid-layout">
+                    <!-- Mentor Card 1 -->
+                    <div class="alumni-mentor-card" data-mentor-id="SJ" data-mentor-name="Sarah Jenkins">
+                        <div class="alumni-card-banner" style="background-color: navy;"></div>
+                        <div class="alumni-card-avatar">SJ</div>
+                        <h3 class="alumni-card-name">Sarah Jenkins</h3>
+                        <p class="alumni-card-track" style="color: navy;">Software Engineering</p>
+                        <p class="alumni-card-year">Class of 2021</p>
+                        <button class="alumni-btn-action">Request Match</button>
+                    </div>
+
+                    <!-- Mentor Card 2 -->
+                    <div class="alumni-mentor-card" data-mentor-id="MK" data-mentor-name="Marcus Kim">
+                        <div class="alumni-card-banner" style="background-color: crimson;"></div>
+                        <div class="alumni-card-avatar">MK</div>
+                        <h3 class="alumni-card-name">Marcus Kim</h3>
+                        <p class="alumni-card-track" style="color: navy;">Data Architecture</p>
+                        <p class="alumni-card-year">Class of 2019</p>
+                        <button class="alumni-btn-action">Request Match</button>
+                    </div>
+
+                    <!-- Mentor Card 3 -->
+                    <div class="alumni-mentor-card" data-mentor-id="EL" data-mentor-name="Elena Lopez">
+                        <div class="alumni-card-banner" style="background-color: gold;"></div>
+                        <div class="alumni-card-avatar">EL</div>
+                        <h3 class="alumni-card-name">Elena Lopez</h3>
+                        <p class="alumni-card-track" style="color: navy;">Cybersecurity</p>
+                        <p class="alumni-card-year">Class of 2022</p>
+                        <button class="alumni-btn-action">Request Match</button>
+                    </div>
+                </div>
+            </section>
+
+            <div class="alumni-ultra-divider"></div>
+
+            <!-- NEW: outcome screen after acceptance — answers "where does my accepted mentor show up?" -->
+            <section class="alumni-directory-section" id="my-mentor">
+                <h3 class="alumni-directory-heading">My Mentor</h3>
+
+                <div class="alumni-grid-layout">
+                    <div class="alumni-mentor-card">
+                        <div class="alumni-card-banner" style="background-color: royalblue;"></div>
+                        <div class="alumni-card-avatar">—</div>
+                        <h3 class="alumni-card-name">No Active Mentor Yet</h3>
+                        <p class="alumni-card-track" style="color: darkslategray;">Your accepted mentor will appear here.</p>
+                        <p class="alumni-card-year">&nbsp;</p>
+                        <button class="alumni-btn-action" disabled style="opacity: 0.5; cursor: not-allowed;">Contact Mentor</button>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="system-core.js"></script>
+</body>
+</html>
