@@ -1,4 +1,4 @@
-const API_BASE = 'https://alumni-mentorship-matcher-backend.onrender.com/api';
+const API_BASE = 'https://alumni-mentorship-matcher.onrender.com/api';
 
 const sessionStore = {
     get token() { return localStorage.getItem('amm_token'); },
