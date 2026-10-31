@@ -12,6 +12,9 @@
     const heroOver = document.querySelector('.hero__layer--over');
     const cue = document.querySelector('.hero__cue');
     const linen = document.querySelector('.linen');
+    const stage = document.querySelector('.linen__stage');
+    const track = document.querySelector('.linen__track');
+    const arts = Array.prototype.slice.call(document.querySelectorAll('.linen__arts .medallion'));
     const beats = Array.prototype.slice.call(document.querySelectorAll('.beat'));
     const slant = document.querySelector('.slant');
     const slantHall = document.querySelector('.slant__hall');
@@ -57,19 +60,23 @@
         cue.style.opacity = String(1 - clamp(heroP / 0.1));
     }
 
+    function sizeLinen() {
+        linen.style.height = (beats.length + 2) * stage.offsetHeight + 'px';
+    }
+
     function updateBeats() {
-        const H = window.innerHeight;
-        beats.forEach(function (beat) {
-            const r = beat.getBoundingClientRect();
-            const center = r.top + r.height / 2 - H / 2;
-            const d = clamp(Math.abs(center) / (H * 0.5));
+        const H = stage.offsetHeight;
+        const d = clamp(-linen.getBoundingClientRect().top, 0, (beats.length + 1) * H);
+        const ty = H - d;
+        track.style.transform = 'translate3d(0,' + ty + 'px,0)';
+        beats.forEach(function (beat, i) {
+            const off = ty + i * H;
             const text = beat.querySelector('.beat__text');
-            text.style.opacity = String(reduce ? 1 : 1 - Math.pow(d, 1.6));
-            text.style.transform = 'translateY(' + center * -0.06 + 'px)';
-            beat.querySelectorAll('.medallion').forEach(function (m) {
-                const speed = parseFloat(m.dataset.speed || '0.2');
-                m.style.transform = reduce ? 'none' : 'translateY(' + center * speed + 'px)';
-            });
+            text.style.opacity = String(reduce ? 1 : 1 - Math.pow(clamp(Math.abs(off) / (H * 0.5)), 1.6));
+            const art = arts[i];
+            const k = clamp(Math.abs(off) / (H * 0.9));
+            art.style.opacity = String(reduce ? (Math.abs(off) < H * 0.5 ? 1 : 0) : 1 - k * k);
+            art.style.setProperty('--s', String(reduce ? 1 : 0.9 + 0.1 * (1 - k)));
         });
     }
 
@@ -124,7 +131,8 @@
         if (!ticking) { ticking = true; requestAnimationFrame(frame); }
     }
     window.addEventListener('scroll', request, { passive: true });
-    window.addEventListener('resize', request);
+    window.addEventListener('resize', function () { sizeLinen(); request(); });
+    sizeLinen();
     frame();
 
     document.querySelectorAll('.step').forEach(function (s, i) {

@@ -126,9 +126,10 @@ p { margin: 0; }
 .hero__cue::after { content: ''; width: 1px; height: 38px; background: currentColor; animation: cue 1.8s var(--ease) infinite; transform-origin: top; }
 @keyframes cue { 0% { transform: scaleY(0); opacity: 1; } 70% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
 
-.linen { position: relative; }
+.linen { position: relative; height: 500vh; }
+.linen__stage { position: sticky; top: 0; height: 100vh; overflow: hidden; }
 .linen__bg {
-    position: sticky; top: 0; height: 100vh; z-index: 0;
+    position: absolute; inset: 0;
     background-color: var(--linen);
     background-image:
         radial-gradient(ellipse at 50% 40%, rgba(120, 70, 35, .28), transparent 62%),
@@ -136,25 +137,27 @@ p { margin: 0; }
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85 .25' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 .08  0 0 0 0 .05  0 0 0 0 .02  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.2 .9' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 .9  0 0 0 0 .75  0 0 0 0 .55  0 0 0 .16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
-.linen__beats { position: relative; z-index: 1; margin-top: -100vh; }
-.beat { position: relative; min-height: 115vh; display: flex; align-items: center; justify-content: center; padding: 0 6vw; }
+.linen__arts { position: absolute; inset: 0; pointer-events: none; }
+.medallion {
+    position: absolute; left: clamp(20px, 4vw, 90px); top: 50%;
+    width: clamp(120px, 14vw, 220px); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
+    transform: translateY(-50%) scale(var(--s, 1)); opacity: 0;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45), 0 0 0 1px rgba(246, 242, 234, .08);
+    will-change: opacity, transform;
+}
+.medallion canvas { width: 100%; height: 100%; }
+.linen__track { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+.beat { height: 100vh; display: flex; align-items: center; justify-content: center; padding: 0 6vw; }
 .beat__text {
     max-width: 17ch; text-align: center; color: var(--cream);
     font-family: var(--display); font-weight: 300; letter-spacing: -.02em;
     font-size: clamp(36px, 5.2vw, 84px); line-height: 1.05;
-    transition: opacity .1s linear;
 }
 .beat__text small {
     display: block; margin: 22px auto 0; max-width: 46ch;
     font-family: var(--body); font-size: clamp(15px, 1.2vw, 18px); line-height: 1.6; font-weight: 400;
     letter-spacing: 0; color: rgba(246, 242, 234, .72);
 }
-.medallion {
-    position: absolute; width: clamp(130px, 17vw, 260px); aspect-ratio: 1; border-radius: 50%; overflow: hidden;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .45), 0 0 0 1px rgba(246, 242, 234, .08);
-    will-change: transform;
-}
-.medallion canvas { width: 100%; height: 100%; }
 
 .slant { position: relative; height: 340vh; }
 .slant__stage {
@@ -433,6 +436,8 @@ a.note:hover { background: var(--cream-2); }
     .app .nav { flex-wrap: wrap; height: auto; min-height: var(--nav-h); padding: 10px 16px; gap: 6px; }
     .app .nav__links { order: 3; width: 100%; overflow-x: auto; gap: 18px; padding-bottom: 4px; font-size: 14px; white-space: nowrap; }
     .app .page { padding-top: 132px; }
+    .medallion { left: 50%; top: 20%; transform: translate(-50%, -50%) scale(var(--s, 1)); }
+    .beat { padding-top: 22vh; }
     .steps, .figures { grid-template-columns: 1fr; }
     .step { border-right: 0; margin-right: 0; border-bottom: 1px solid var(--line); }
     .chat { grid-template-columns: 1fr; height: auto; }
