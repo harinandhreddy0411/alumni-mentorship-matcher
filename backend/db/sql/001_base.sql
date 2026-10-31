@@ -1,10 +1,4 @@
--- Alumni Mentorship Matcher — MySQL schema (3NF)
--- Run this once against a fresh database: mysql -u root -p < schema.sql
-
-CREATE DATABASE IF NOT EXISTS alumni_matcher;
-USE alumni_matcher;
-
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id           INT AUTO_INCREMENT PRIMARY KEY,
     username          VARCHAR(50)  NOT NULL UNIQUE,
     password_hash     VARCHAR(255) NOT NULL,
@@ -16,9 +10,7 @@ CREATE TABLE users (
     creation_ts       DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
--- 3NF split: these attributes depend on "this user is an alumnus," not on user_id alone,
--- so they don't belong on the users supertype (they'd sit NULL for every student otherwise).
-CREATE TABLE alumni_details (
+CREATE TABLE IF NOT EXISTS alumni_details (
     alumni_id        INT PRIMARY KEY,
     capacity_status  ENUM('active','paused') NOT NULL DEFAULT 'active',
     max_mentees      INT NOT NULL DEFAULT 3,
@@ -26,7 +18,7 @@ CREATE TABLE alumni_details (
     FOREIGN KEY (alumni_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE mentorship_requests (
+CREATE TABLE IF NOT EXISTS mentorship_requests (
     request_id      INT AUTO_INCREMENT PRIMARY KEY,
     student_id      INT NOT NULL,
     alumni_id       INT NOT NULL,
@@ -38,13 +30,10 @@ CREATE TABLE mentorship_requests (
     FOREIGN KEY (alumni_id)  REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     session_id   INT AUTO_INCREMENT PRIMARY KEY,
-    user_id      INT NOT NULL UNIQUE,   -- UNIQUE enforces the 1:1 cardinality from the ER model
+    user_id      INT NOT NULL UNIQUE,
     token        VARCHAR(64) NOT NULL UNIQUE,
     login_ts     DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
-
--- Seed an admin account so the system isn't unusable on first run
--- (password is 'adminpassword' — bcrypt hash generated at setup time, see seed.js)

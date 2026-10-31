@@ -1,68 +1,145 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alumni Mentorship Matcher | Access Portal</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alumni Mentorship Matcher</title>
+<meta name="description" content="Students find alumni mentors, send a request, chat, book meetings and leave reviews.">
+<link rel="preload" href="fonts/jost-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="styles.css">
 </head>
-<body class="alumni-ultra-body">
-    
-    <div class="alumni-fixed-blueprint"></div>
-    <div class="alumni-orbiting-wireframe-alpha"></div>
-    <div class="alumni-orbiting-wireframe-beta"></div>
+<body>
+<header class="nav" data-theme="dark">
+    <a href="index.html" aria-label="Alumni Mentorship Matcher" id="brand"></a>
+    <nav class="nav__links nav__links--main">
+        <a href="#how">How it works</a>
+        <a href="#numbers">In numbers</a>
+        <a href="#join">Join</a>
+        <a class="btn" id="navCta" href="#join">Sign in</a>
+    </nav>
+</header>
 
-    <div class="alumni-marquee-band">
-        <div class="alumni-marquee-track">
-            ALUMNI MENTORSHIP MATCHER • BRIDGING ACADEMICS AND INDUSTRY • FOSTERING PROFESSIONAL NETWORKS • DATABASE MANAGEMENT SYSTEM PROJECT • EMPOWERING CURRENT STUDENTS • ALUMNI MENTORSHIP MATCHER • BRIDGING ACADEMICS AND INDUSTRY • FOSTERING PROFESSIONAL NETWORKS • DATABASE MANAGEMENT SYSTEM PROJECT • EMPOWERING CURRENT STUDENTS •
+<main>
+<section class="hero" data-nav="hero" aria-label="Introduction">
+    <div class="hero__stage">
+        <div class="hero__media" aria-hidden="true"><canvas></canvas></div>
+        <div class="hero__layer hero__layer--base">
+            <h1 class="hero__title hero__title--base"><span>Meet the person</span><br><span>who already</span><br><span>did it.</span></h1>
+        </div>
+        <div class="hero__layer hero__layer--over" aria-hidden="true">
+            <div class="hero__title hero__title--over"><span>Meet the person</span><br><span>who already</span><br><span>did it.</span></div>
+        </div>
+        <div class="hero__cue">Scroll</div>
+    </div>
+</section>
+
+<section class="linen" data-nav="sand" aria-label="What it is">
+    <div class="linen__bg"></div>
+    <div class="linen__beats">
+        <div class="beat">
+            <div class="medallion" data-speed="0.22" style="left:7vw; top:22%"><canvas data-art="arch"></canvas></div>
+            <p class="beat__text">A student with a question.<small>Second year or final year, you know what you are curious about. Add the skills you have and the ones you want, and the mentor list sorts itself around you.</small></p>
+        </div>
+        <div class="beat">
+            <div class="medallion" data-speed="-0.2" style="right:8vw; top:56%"><canvas data-art="stairs"></canvas></div>
+            <p class="beat__text">An alumnus with an hour to spare.<small>Mentors say how many people they can take and when they are free. Nobody gets more requests than they offered to answer.</small></p>
+        </div>
+        <div class="beat">
+            <div class="medallion" data-speed="0.18" style="left:12vw; top:62%"><canvas data-art="windows"></canvas></div>
+            <p class="beat__text">One match that holds.<small>When a request is accepted the pair get a private chat, a calendar of meetings and a place to say how it went.</small></p>
         </div>
     </div>
+</section>
 
-    <header class="alumni-ultra-header">
-        <h1 class="alumni-ultra-brand">Alumni Matcher</h1>
-        <nav class="alumni-ultra-controls">
-            <button class="alumni-btn-signin">Sign In</button>
-            <button class="alumni-btn-logout">Logout</button>
-        </nav>
-    </header>
-    
-    <main class="alumni-ultra-workspace">
-        <div class="alumni-3d-auth-card">
-            <section class="alumni-ultra-module">
-                <h2 class="alumni-ultra-title">System Login</h2>
-                <form class="alumni-ultra-form">
-                    <label class="alumni-ultra-label" for="auth-username">Username</label>
-                    <input class="alumni-ultra-input" type="text" id="auth-username" name="username" required>
-                    
-                    <label class="alumni-ultra-label" for="auth-password">Password</label>
-                    <input class="alumni-ultra-input" type="password" id="auth-password" name="password" required>
-                    
-                    <button class="alumni-ultra-submit" type="submit">Access Portal</button>
-                </form>
-            </section>
-            
-            <div class="alumni-ultra-divider"></div>
-            
-            <section class="alumni-ultra-module">
-                <h2 class="alumni-ultra-title">New Registration</h2>
-                <form class="alumni-ultra-form">
-                    <label class="alumni-ultra-label" for="reg-role">Account Type</label>
-                    <select class="alumni-ultra-select" id="reg-role" name="role" required>
-                        <option value="student">Current Student</option>
-                        <option value="alumni">Alumni Mentor</option>
-                    </select>
-                    
-                    <label class="alumni-ultra-label" for="reg-username">Desired Username</label>
-                    <input class="alumni-ultra-input" type="text" id="reg-username" name="new-username" required>
-                    
-                    <label class="alumni-ultra-label" for="reg-password">Create Password</label>
-                    <input class="alumni-ultra-input" type="password" id="reg-password" name="new-password" required>
-                    
-                    <button class="alumni-ultra-submit" type="submit">Initialize Account</button>
-                </form>
-            </section>
+<section class="slant" data-nav="slant" aria-label="The difference">
+    <div class="slant__stage">
+        <div class="slant__layer slant__layer--dark">
+            <div class="slant__old"><p class="eyebrow">The usual way</p><h2>Cold emails.<br>No reply.<br>Term over.</h2></div>
+            <div class="slant__new"><p class="eyebrow">Here</p><h2>A match,<br>a chat,<br>an hour booked.</h2></div>
         </div>
-    </main>
-    <script src="system-core.js"></script>
+        <div class="slant__hall" aria-hidden="true"><canvas></canvas></div>
+        <div class="slant__layer slant__layer--light" aria-hidden="true">
+            <div class="slant__old"><p class="eyebrow">The usual way</p><h2>Cold emails.<br>No reply.<br>Term over.</h2></div>
+            <div class="slant__new"><p class="eyebrow">Here</p><h2>A match,<br>a chat,<br>an hour booked.</h2></div>
+        </div>
+        <svg class="slant__lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <line x1="26.6" y1="100" x2="52.5" y2="0"></line>
+            <line x1="45" y1="100" x2="71" y2="0"></line>
+        </svg>
+    </div>
+</section>
+
+<section class="band band--paper" id="how" data-nav="cream">
+    <div class="band__head">
+        <p class="eyebrow">How it works</p>
+        <h2>Four steps, each one on record.</h2>
+    </div>
+    <div class="steps">
+        <div class="step"><div class="step__n">01</div><h3>List your skills</h3><p>Pick what you know and what you want to learn. The matcher counts the skills you share with every mentor and ranks them for you.</p></div>
+        <div class="step"><div class="step__n">02</div><h3>Send a request</h3><p>A focus area and a short pitch. The database turns away duplicates, full mentors and anyone who is not a student.</p></div>
+        <div class="step"><div class="step__n">03</div><h3>Talk once accepted</h3><p>Chat opens only for an accepted pair. The mentor decides, and a mentor cannot accept more people than they set.</p></div>
+        <div class="step"><div class="step__n">04</div><h3>Meet, then review</h3><p>Book a time shown in your own timezone. After the meeting is marked complete, the mentee rates it once.</p></div>
+    </div>
+</section>
+
+<section class="band band--dark" id="numbers" data-nav="sand">
+    <div class="band__head">
+        <p class="eyebrow">In numbers</p>
+        <h2>Counted live from the database.</h2>
+    </div>
+    <div class="figures">
+        <div class="figure"><div class="figure__v" data-k="mentors">0</div><div class="figure__l">Mentors</div></div>
+        <div class="figure"><div class="figure__v" data-k="students">0</div><div class="figure__l">Students</div></div>
+        <div class="figure"><div class="figure__v" data-k="matches">0</div><div class="figure__l">Active matches</div></div>
+        <div class="figure"><div class="figure__v" data-k="rating">0</div><div class="figure__l">Average rating out of 5</div></div>
+    </div>
+</section>
+
+<section class="band band--stripe" id="join" data-nav="cream">
+    <div class="join">
+        <div>
+            <p class="eyebrow">Join</p>
+            <h2>Start with a list of skills.</h2>
+            <p class="join__lead">Create an account, say what you know and what you want to learn, and your first mentors appear straight away.</p>
+        </div>
+        <div class="card-auth" id="authBox">
+            <div class="tabs" role="tablist">
+                <button role="tab" aria-selected="true" data-tab="signin">Sign in</button>
+                <button role="tab" aria-selected="false" data-tab="signup">Create account</button>
+            </div>
+            <form id="formSignin" novalidate>
+                <div class="field"><label for="si-u">Username</label><input class="input" id="si-u" name="username" autocomplete="username" required></div>
+                <div class="field"><label for="si-p">Password</label><input class="input" id="si-p" name="password" type="password" autocomplete="current-password" required></div>
+                <div class="form-error" role="alert"></div>
+                <button class="btn" type="submit" style="width:100%">Sign in</button>
+            </form>
+            <form id="formSignup" hidden novalidate>
+                <div class="field"><label for="su-n">Full name</label><input class="input" id="su-n" name="fullName" autocomplete="name" required></div>
+                <div class="row">
+                    <div class="field"><label for="su-u">Username</label><input class="input" id="su-u" name="username" autocomplete="username" required></div>
+                    <div class="field"><label for="su-r">I am a</label><select class="select" id="su-r" name="role"><option value="student">Student</option><option value="alumni">Alumnus or alumna</option></select></div>
+                </div>
+                <div class="field"><label for="su-p">Password</label><input class="input" id="su-p" name="password" type="password" minlength="6" autocomplete="new-password" required><span class="hint">At least 6 characters.</span></div>
+                <div class="form-error" role="alert"></div>
+                <button class="btn" type="submit" style="width:100%">Create account</button>
+            </form>
+        </div>
+    </div>
+</section>
+</main>
+
+<footer class="foot">
+    <div id="footBrand"></div>
+    <div>Built for 23CSE202 Database Management Systems, Amrita School of Computing, Amritapuri.<br><a href="https://github.com/harinandhreddy0411/alumni-mentorship-matcher">Source on GitHub</a></div>
+</footer>
+
+<script src="core.js"></script>
+<script>
+    document.getElementById('brand').innerHTML = App.markup();
+    document.getElementById('footBrand').innerHTML = App.markup();
+</script>
+<script src="art.js"></script>
+<script src="landing.js"></script>
 </body>
 </html>

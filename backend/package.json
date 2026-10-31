@@ -1,18 +1,21 @@
 {
-  "name": "alumni-mentorship-backend",
-  "version": "1.0.0",
-  "description": "Backend API for Alumni Mentorship Matcher (23CSE202 DBMS project)",
+  "name": "alumni-mentorship-matcher-api",
+  "version": "2.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "seed": "node db/seed.js"
+    "migrate": "node db/apply.js",
+    "seed": "node db/seed.js",
+    "seed:demo": "node db/seed-demo.js",
+    "test:db": "node db/test-logic.js",
+    "test:api": "node test-api.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "express-async-errors": "^3.1.1",
-    "mysql2": "^3.10.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
+    "mysql2": "^3.10.0"
   }
 }

@@ -7,7 +7,7 @@ const { requireSession } = require('../middleware/requireSession');
 const router = express.Router();
 
 router.get('/me', requireSession, (req, res) => {
-    res.json({ success: true, user: req.user }); // { user_id, role, full_name }
+    res.json({ success: true, user: req.user });
 });
 
 router.post('/register', async (req, res) => {
@@ -18,20 +18,32 @@ router.post('/register', async (req, res) => {
     if (!['student', 'alumni'].includes(role)) {
         return res.status(400).json({ success: false, error: 'Invalid role' });
     }
+    if (String(password).length < 6) {
+        return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    }
     const [existing] = await pool.query('SELECT user_id FROM users WHERE username = ?', [username]);
     if (existing.length > 0) {
         return res.status(409).json({ success: false, error: 'Username unavailable' });
     }
     const hash = await bcrypt.hash(password, 10);
-    // fullName defaults to username since index.html's registration form doesn't collect a separate name
-    const [result] = await pool.query(
-        'INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)',
-        [username, hash, role, fullName || username]
-    );
-    if (role === 'alumni') {
-        await pool.query('INSERT INTO alumni_details (alumni_id) VALUES (?)', [result.insertId]);
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const [result] = await conn.query(
+            'INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)',
+            [username, hash, role, fullName || username]
+        );
+        if (role === 'alumni') {
+            await conn.query('INSERT INTO alumni_details (alumni_id) VALUES (?)', [result.insertId]);
+        }
+        await conn.commit();
+        res.json({ success: true, userId: result.insertId });
+    } catch (err) {
+        await conn.rollback();
+        throw err;
+    } finally {
+        conn.release();
     }
-    res.json({ success: true, userId: result.insertId });
 });
 
 router.post('/login', async (req, res) => {
@@ -47,8 +59,9 @@ router.post('/login', async (req, res) => {
     }
     const token = crypto.randomBytes(32).toString('hex');
     await pool.query(
-        `INSERT INTO sessions (user_id, token) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE token = VALUES(token), login_ts = CURRENT_TIMESTAMP`,
+        `INSERT INTO sessions (user_id, token, expires_at)
+         VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))
+         ON DUPLICATE KEY UPDATE token = VALUES(token), login_ts = NOW(), expires_at = VALUES(expires_at)`,
         [user.user_id, token]
     );
     res.json({ success: true, role: user.role, token, userId: user.user_id, fullName: user.full_name });
