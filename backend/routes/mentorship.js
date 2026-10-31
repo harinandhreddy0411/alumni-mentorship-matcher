@@ -74,12 +74,15 @@ router.get('/requests/incoming', requireSession, requireRole('alumni'), async (r
     const [rows] = await pool.query(
         `SELECT q.request_id, q.focus_area, q.pitch_message, q.creation_ts,
                 q.student_id, q.student_name, q.student_track,
-                fn_match_score(q.student_id, q.alumni_id) AS shared_skills
+                fn_match_score(q.student_id, q.alumni_id) AS shared_skills,
+                (SELECT GROUP_CONCAT(sk.name ORDER BY FIELD(us.level, 'expert', 'intermediate', 'beginner'), sk.name SEPARATOR '|')
+                   FROM user_skills us JOIN skills sk ON sk.skill_id = us.skill_id
+                  WHERE us.user_id = q.student_id) AS skills
          FROM v_pending_queue q
          WHERE q.alumni_id = ? ORDER BY q.creation_ts ASC, q.request_id ASC`,
         [req.user.user_id]
     );
-    res.json({ success: true, requests: rows });
+    res.json({ success: true, requests: rows.map(r => ({ ...r, shared_skills: Number(r.shared_skills) })) });
 });
 
 router.get('/requests/mentees', requireSession, requireRole('alumni'), async (req, res) => {

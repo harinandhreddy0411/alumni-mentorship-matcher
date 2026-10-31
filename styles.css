@@ -177,7 +177,7 @@ p { margin: 0; }
 
 .band { padding: clamp(80px, 11vw, 170px) clamp(20px, 6.5vw, 130px); }
 .band--paper { background: var(--cream); }
-.band--stripe { background-color: var(--cream-2); background-image: repeating-linear-gradient(98deg, transparent 0 26px, rgba(26, 22, 18, .045) 26px 27px); }
+.band--stripe { background-color: var(--cream-2); background-image: repeating-linear-gradient(98deg, transparent 0 26px, rgba(26, 22, 18, .045) 26px 27px); background-attachment: fixed; }
 .band--dark { background: var(--espresso); color: var(--cream); }
 .band__head { max-width: 960px; margin-bottom: clamp(40px, 6vw, 90px); }
 .band__head h2 { font-size: clamp(38px, 5.6vw, 92px); margin-top: 18px; }
@@ -391,6 +391,33 @@ button.chip:hover { border-color: var(--copper); }
 .skillgroup h4 { font-family: var(--body); font-weight: 500; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
 
 [hidden] { display: none !important; }
+
+body.app::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+        radial-gradient(ellipse 70% 55% at 12% 0%, rgba(196, 123, 74, .22), transparent 70%),
+        radial-gradient(ellipse 60% 50% at 100% 100%, rgba(74, 54, 38, .24), transparent 70%),
+        repeating-linear-gradient(98deg, transparent 0 26px, rgba(26, 22, 18, .055) 26px 27px),
+        var(--cream-2);
+}
+.section { scroll-margin-top: calc(var(--nav-h) + 24px); }
+a.stat { display: block; transition: background .2s var(--ease); }
+a.stat:hover { background: var(--cream-2); }
+a.stat:hover .stat__l { color: var(--copper-deep); }
+.chips--sm { gap: 6px; }
+.chips--sm .chip { padding: 3px 10px; font-size: 12px; }
+.chip--shared { border-color: var(--copper); color: var(--copper-deep); background: rgba(196, 123, 74, .1); }
+.chip--more { background: transparent; border-style: dashed; color: var(--muted); }
+.chip small { margin-left: 6px; color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.chip--on small { color: rgba(246, 242, 234, .7); }
+.badge--proposed { background: rgba(185, 130, 43, .14); color: #8a5f19; }
+.badge--expired { background: var(--cream-2); color: var(--muted); }
+a.note:hover { background: var(--cream-2); }
+.skilladd { display: flex; gap: 10px; margin-top: 6px; }
+.skilladd .input { flex: 1; }
+.skilladd--wrap { flex-wrap: wrap; }
+.linkbox { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); }
+.card__skills { margin: 0 0 18px; }
 
 @media (max-width: 1000px) {
     .steps, .figures { grid-template-columns: repeat(2, 1fr); }

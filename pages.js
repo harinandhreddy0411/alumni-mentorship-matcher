@@ -12,16 +12,37 @@
             (text ? '<p>' + esc(text) + '</p>' : '') + '</div>' + (actions ? '<div class="item__actions">' + actions + '</div>' : '') + '</div>';
     }
 
-    function section(title, aside, body) {
-        return '<section class="section"><div class="section__head"><h2>' + esc(title) + '</h2>' + (aside ? '<span>' + aside + '</span>' : '') + '</div>' + body + '</section>';
+    function section(title, aside, body, id) {
+        return '<section class="section"' + (id ? ' id="' + id + '"' : '') + '><div class="section__head"><h2>' + esc(title) + '</h2>' + (aside ? '<span>' + aside + '</span>' : '') + '</div>' + body + '</section>';
     }
 
-    function stat(value, label) {
-        return '<div class="stat"><div class="stat__v">' + value + '</div><div class="stat__l">' + esc(label) + '</div></div>';
+    function stat(value, label, href) {
+        const inner = '<div class="stat__v">' + value + '</div><div class="stat__l">' + esc(label) + '</div>';
+        return href ? '<a class="stat" href="' + href + '">' + inner + '</a>' : '<div class="stat">' + inner + '</div>';
     }
 
+    function skillChips(list, mine, max) {
+        if (!list) return '<p class="muted card__skills" style="font-size:13px">No skills listed yet</p>';
+        const names = list.split('|').sort(function (a, b) { return (mine.has(b) ? 1 : 0) - (mine.has(a) ? 1 : 0); });
+        return '<div class="chips chips--sm card__skills">' + names.slice(0, max).map(function (n) {
+            return '<span class="chip' + (mine.has(n) ? ' chip--shared' : '') + '">' + esc(n) + '</span>';
+        }).join('') + (names.length > max ? '<span class="chip chip--more">+' + (names.length - max) + ' more</span>' : '') + '</div>';
+    }
+
+    function proposalBanner(meetings) {
+        const now = Date.now();
+        const n = meetings.filter(function (m) { return m.can_respond && A.parseDate(m.scheduled_at).getTime() > now; }).length;
+        if (!n) return '';
+        return '<div class="card card--dark" style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap"><div><h3>' + n + (n === 1 ? ' meeting proposal needs' : ' meeting proposals need') + ' your answer</h3><p class="muted" style="margin-top:6px">Accept a time that suits you or decline it.</p></div><a class="btn btn--light" href="meetings.html#proposals">Review</a></div>';
+    }
+
+    let hashDone = false;
     function shell(inner) {
         view.innerHTML = '<div class="page"><div class="wrap">' + inner + '</div></div>';
+        if (location.hash && !hashDone) {
+            const el = document.getElementById(location.hash.slice(1));
+            if (el) { hashDone = true; el.scrollIntoView(); }
+        }
     }
 
     function fail(e, retry) {
@@ -55,8 +76,9 @@
 
     pages.student = async function (s) {
         loading();
-        const r = await Promise.all([api('GET', '/mentors'), api('GET', '/requests/mine'), api('GET', '/matches/mine'), api('GET', '/meetings')]);
+        const r = await Promise.all([api('GET', '/mentors'), api('GET', '/requests/mine'), api('GET', '/matches/mine'), api('GET', '/meetings'), api('GET', '/profile')]);
         const mentors = r[0].mentors;
+        const mine = new Set(r[4].skills.map(function (x) { return x.name; }));
         const requests = r[1].requests;
         const matches = r[2].matches;
         const upcoming = upcomingOf(r[3].meetings);
@@ -69,7 +91,7 @@
             : '<div class="grid">' + mentors.map(function (m) {
                 return '<a class="card" href="request-mentor.html?mentor=' + m.alumni_id + '"><div class="card__top"><div class="who"><span class="avatar">' + esc(A.initials(m.full_name)) + '</span><div><h3>' + esc(m.full_name) + '</h3><div class="card__meta">' + esc(m.focus_track || 'Mentor') + '</div></div></div>' +
                     (m.shared_skills > 0 ? '<span class="badge badge--match">' + m.shared_skills + ' shared</span>' : '') + '</div>' +
-                    '<p class="card__bio">' + esc(m.professional_bio || 'No bio yet.') + '</p>' +
+                    '<p class="card__bio">' + esc(m.professional_bio || 'No bio yet.') + '</p>' + skillChips(m.skills, mine, 5) +
                     '<div class="card__foot"><span>' + A.stars(m.avg_rating) + (m.review_count ? ' <span class="muted">(' + m.review_count + ')</span>' : '') + '</span><span>' + m.open_slots + ' open ' + (m.open_slots === 1 ? 'place' : 'places') + '</span></div></a>';
             }).join('') + '</div>';
 
@@ -83,10 +105,10 @@
 
         shell(
             head('Student', 'Good to see you, ' + A.firstName(s.fullName) + '.', 'Mentors are ranked by the skills you share with them, then by rating.') +
-            '<div class="stats">' + stat(open, 'Pending requests') + stat(matches.length, 'Active mentors') + stat(unread, 'Unread messages') + stat(upcoming[0] ? esc(A.fmtDateTime(upcoming[0].scheduled_at)) : '–', 'Next meeting').replace('stat__v"', 'stat__v" style="font-size:' + (upcoming[0] ? '24px' : '') + '"') + '</div>' +
+            '<div class="stats">' + stat(open, 'Pending requests', '#requests') + stat(matches.length, 'Active mentors', 'messages.html') + stat(unread, 'Unread messages', 'messages.html') + stat(upcoming[0] ? esc(A.fmtDateTime(upcoming[0].scheduled_at)) : '–', 'Next meeting', 'meetings.html').replace('stat__v"', 'stat__v" style="font-size:' + (upcoming[0] ? '24px' : '') + '"') + '</div>' + proposalBanner(r[3].meetings) +
             (noSkills ? '<div class="card card--dark" style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap"><div><h3>Add your skills</h3><p class="muted" style="margin-top:6px">Mentors are not ranked for you yet. Tell us what you know and what you want to learn.</p></div><a class="btn btn--light" href="profile.html">Add skills</a></div>' : '') +
-            section('Recommended mentors', mentors.length + ' available', cards) +
-            section('Your requests', requests.length + ' in total', reqList) +
+            section('Recommended mentors', mentors.length + ' available', cards, 'mentors') +
+            section('Your requests', requests.length + ' in total', reqList, 'requests') +
             (upcoming.length ? section('Upcoming meetings', '', meetingRows(upcoming)) : '')
         );
     };
@@ -105,8 +127,8 @@
             return '<div class="' + (list ? 'on' : '') + '"><b>' + d + '</b>' + (list ? list.map(esc).join('<br>') : '–') + '</div>';
         }).join('') + '</div>';
         const skills = r[0].skills.length ? '<div class="chips">' + r[0].skills.map(function (k) {
-            return '<span class="chip' + (mine.has(k.name) ? ' chip--on' : '') + '">' + esc(k.name) + '</span>';
-        }).join('') + '</div>' : '<p class="muted">No skills listed.</p>';
+            return '<span class="chip' + (mine.has(k.name) ? ' chip--on' : '') + '">' + esc(k.name) + '<small>' + esc(k.level) + '</small></span>';
+        }).join('') + '</div>' : '<p class="muted">This mentor has not listed any skills yet.</p>';
         const reviews = r[0].reviews.length ? '<div class="list">' + r[0].reviews.map(function (v) {
             return '<div class="item"><div class="item__main"><div class="item__title">' + A.stars(v.rating) + '</div><div class="item__text">' + esc(v.comment || 'No comment.') + '</div><div class="item__sub">' + esc(v.reviewer) + ' · ' + A.fmtDate(v.created_ts) + '</div></div></div>';
         }).join('') + '</div>' : '<div class="list">' + A.empty('No reviews yet', 'Reviews appear after a completed meeting.') + '</div>';
@@ -119,7 +141,7 @@
             '<div class="who" style="gap:22px;margin-bottom:26px"><span class="avatar avatar--lg">' + esc(A.initials(m.full_name)) + '</span><div><p class="eyebrow">' + esc(m.focus_track || 'Mentor') + '</p><h1 style="font-size:clamp(34px,4vw,56px);margin-top:8px">' + esc(m.full_name) + '</h1><div style="margin-top:10px">' + A.stars(m.avg_rating) + (m.review_count ? ' <span class="muted">' + m.review_count + ' reviews</span>' : '') + '</div></div></div>' +
             '<p style="font-size:18px;color:var(--ink-2);max-width:60ch">' + esc(m.professional_bio || 'This mentor has not written a bio yet.') + '</p>' +
             section('Skills', m.shared_skills + ' in common with you', skills) +
-            section('Usually free', '', week) +
+            section('Usually free', 'In the mentor\'s own timezone', week) +
             section('What mentees said', '', reviews) +
             '</div><aside class="card card--dark" style="position:sticky;top:100px"><h3>Send a request</h3><p class="muted" style="margin:8px 0 22px">' + (closed ? 'This mentor is not taking new mentees right now.' : m.open_slots + ' ' + (m.open_slots === 1 ? 'place' : 'places') + ' left. Keep it short and specific.') + '</p>' +
             '<form id="reqForm" novalidate><div class="field"><label style="color:rgba(246,242,234,.8)" for="rf-f">Focus area</label><input class="input" id="rf-f" name="focus" list="focusList" maxlength="50" placeholder="What do you want help with?"><datalist id="focusList">' + datalist + '</datalist></div>' +
@@ -147,7 +169,8 @@
 
     pages.alumni = async function (s) {
         loading();
-        const r = await Promise.all([api('GET', '/requests/incoming'), api('GET', '/requests/mentees'), api('GET', '/capacity'), api('GET', '/meetings'), api('GET', '/matches/mine')]);
+        const r = await Promise.all([api('GET', '/requests/incoming'), api('GET', '/requests/mentees'), api('GET', '/capacity'), api('GET', '/meetings'), api('GET', '/matches/mine'), api('GET', '/profile')]);
+        const mySkills = new Set(r[5].skills.map(function (x) { return x.name; }));
         const incoming = r[0].requests;
         const mentees = r[1].mentees;
         const cap = r[2].capacity;
@@ -160,7 +183,7 @@
             ? '<div class="list">' + A.empty('No pending requests', paused ? 'You are paused, so students cannot find you.' : 'New requests show up here.') + '</div>'
             : '<div class="list">' + incoming.map(function (q) {
                 return '<div class="item"><div class="item__main">' + person(q.student_name, (q.student_track || 'Student') + ' · ' + (q.focus_area || 'General') + ' · ' + A.ago(q.creation_ts)) +
-                    '<div class="item__text">' + esc(q.pitch_message) + '</div>' + (q.shared_skills > 0 ? '<div style="margin-top:12px"><span class="badge badge--match">' + q.shared_skills + ' shared skill' + (q.shared_skills === 1 ? '' : 's') + '</span></div>' : '') + '</div>' +
+                    '<div class="item__text">' + esc(q.pitch_message) + '</div>' + (q.skills ? '<div style="margin-top:12px">' + skillChips(q.skills, mySkills, 6) + '</div>' : '') + (q.shared_skills > 0 ? '<div style="margin-top:12px"><span class="badge badge--match">' + q.shared_skills + ' shared skill' + (q.shared_skills === 1 ? '' : 's') + '</span></div>' : '') + '</div>' +
                     '<div class="item__actions"><button class="btn btn--ghost btn--sm" data-act="declined" data-id="' + q.request_id + '">Decline</button><button class="btn btn--sm" data-act="accepted" data-id="' + q.request_id + '">Accept</button></div></div>';
             }).join('') + '</div>';
         const menteesHtml = mentees.length === 0
@@ -176,9 +199,9 @@
         shell(
             head('Mentor', 'Welcome, ' + A.firstName(s.fullName) + '.', 'Answer requests, talk to your mentees and keep your capacity current.', '<a class="btn btn--ghost" href="manage-schedule.html">Capacity and hours</a>') +
             (paused ? '<div class="card card--dark" style="margin-bottom:24px"><h3>You are paused</h3><p class="muted" style="margin-top:6px">Students cannot see you until you switch back to active in Capacity and hours.</p></div>' : '') +
-            '<div class="stats">' + stat(incoming.length, 'Pending requests') + stat(mentees.length + ' / ' + cap.max_mentees, 'Mentees') + stat(cap.capacity_status === 'active' ? 'Open' : 'Paused', 'Status') + stat(upcoming.length, 'Upcoming meetings') + '</div>' +
-            section('Requests waiting', incoming.length + ' pending', incomingHtml) +
-            section('Your mentees', mentees.length + ' of ' + cap.max_mentees + ' places used', menteesHtml) +
+            '<div class="stats">' + stat(incoming.length, 'Pending requests', '#requests') + stat(mentees.length + ' / ' + cap.max_mentees, 'Mentees', '#mentees') + stat(cap.capacity_status === 'active' ? 'Open' : 'Paused', 'Status', 'manage-schedule.html') + stat(upcoming.length, 'Upcoming meetings', 'meetings.html') + '</div>' + proposalBanner(r[3].meetings) +
+            section('Requests waiting', incoming.length + ' pending', incomingHtml, 'requests') +
+            section('Your mentees', mentees.length + ' of ' + cap.max_mentees + ' places used', menteesHtml, 'mentees') +
             (upcoming.length ? section('Upcoming meetings', '', meetingRows(upcoming)) : '')
         );
 
@@ -275,7 +298,7 @@
 
         function levelsHtml() {
             const ids = Object.keys(chosen);
-            if (ids.length === 0) return '<p class="muted">Pick at least a few skills above.</p>';
+            if (ids.length === 0) return '<p class="muted">Tap a few skills above and set how well you know each one here.</p>';
             return ids.map(function (id) {
                 const k = catalog.find(function (x) { return String(x.skill_id) === id; });
                 return '<div class="item" style="padding:12px 0;border-bottom:1px solid var(--line)"><span>' + esc(k.name) + '</span><select class="select" style="width:auto" data-l="' + id + '">' +
@@ -289,7 +312,7 @@
             '<div class="field"><label for="pf-e">Email</label><input class="input" id="pf-e" name="email" type="email" value="' + esc(p.email || '') + '"><span class="hint">Shown to a mentor or mentee only after a request is accepted.</span></div>' +
             '<div class="field"><label for="pf-t">Focus track</label><select class="select" id="pf-t" name="focusTrack"><option value="">Not set</option>' + tracks.map(function (t) { return '<option' + (t === p.focus_track ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div>' +
             '<div class="field"><label for="pf-b">Bio</label><textarea class="textarea" id="pf-b" name="bio" maxlength="1000" placeholder="' + (s.role === 'alumni' ? 'What you do now and what you can help with.' : 'Where you are and what you are working towards.') + '">' + esc(p.professional_bio || '') + '</textarea></div></div>' +
-            '<div class="card"><h3 style="margin-bottom:18px">Skills</h3><div id="skills">' + skillsHtml() + '</div><div class="section__head" style="margin-top:10px"><h3 style="font-size:20px">Your level</h3></div><div id="levels">' + levelsHtml() + '</div></div></div>' +
+            '<div class="card"><h3>Skills</h3><p class="muted" style="margin:8px 0 20px">' + (s.role === 'alumni' ? 'Tap what you can mentor on. Students see these on your card.' : 'Tap what you know and what you want to learn. Mentors are ranked by how many you share.') + '</p><div id="skills">' + skillsHtml() + '</div><div class="skilladd"><input class="input" id="skNew" maxlength="40" placeholder="Not listed? Add your own skill" autocomplete="off"><button type="button" class="btn btn--ghost" id="skAdd">Add</button></div><div class="form-error" id="skErr" role="alert"></div><div class="section__head" style="margin-top:22px"><h3 style="font-size:20px">Your level</h3></div><div id="levels">' + levelsHtml() + '</div></div></div>' +
             '<div class="form-error" id="pfErr" role="alert" style="margin-top:20px"></div><div style="margin-top:12px"><button class="btn" type="submit">Save profile</button></div></form>'
         );
 
@@ -310,6 +333,28 @@
             view.querySelectorAll('[data-l]').forEach(function (sel) { sel.onchange = function () { chosen[sel.dataset.l] = sel.value; }; });
         }
         bind();
+
+        async function addSkill() {
+            const input = document.getElementById('skNew');
+            const err = document.getElementById('skErr');
+            const name = input.value.trim();
+            err.textContent = '';
+            if (name.length < 2) { err.textContent = 'Type at least two letters.'; return; }
+            try {
+                const d = await api('POST', '/skills', { name: name });
+                if (!catalog.some(function (k) { return k.skill_id === d.skill.skill_id; })) {
+                    catalog.push(d.skill);
+                    (groups[d.skill.category] = groups[d.skill.category] || []).push(d.skill);
+                }
+                chosen[d.skill.skill_id] = chosen[d.skill.skill_id] || 'intermediate';
+                input.value = '';
+                document.getElementById('skills').innerHTML = skillsHtml();
+                document.getElementById('levels').innerHTML = levelsHtml();
+                bind();
+            } catch (ex) { err.textContent = ex.message; }
+        }
+        document.getElementById('skAdd').onclick = addSkill;
+        document.getElementById('skNew').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } });
 
         document.getElementById('pf').addEventListener('submit', async function (e) {
             e.preventDefault();
@@ -416,20 +461,36 @@
         const matches = r[1].matches;
         const now = Date.now();
         const upcoming = upcomingOf(meetings);
-        const past = meetings.filter(function (m) { return upcoming.indexOf(m) === -1; });
+        const proposals = meetings.filter(function (m) { return m.status === 'proposed' && A.parseDate(m.scheduled_at).getTime() > now; })
+            .sort(function (a, b) { return A.parseDate(a.scheduled_at) - A.parseDate(b.scheduled_at); });
+        const past = meetings.filter(function (m) { return upcoming.indexOf(m) === -1 && proposals.indexOf(m) === -1; });
         const pre = Number(param('match')) || (matches[0] && matches[0].request_id);
 
         function row(m) {
             const when = A.parseDate(m.scheduled_at).getTime();
             const actions = [];
+            let note = '';
+            let status = m.status;
+            if (m.status === 'proposed') {
+                if (when <= now) {
+                    status = 'expired';
+                } else if (m.can_respond) {
+                    note = esc(A.firstName(m.other_name)) + ' proposed this time';
+                    actions.push('<button class="btn btn--ghost btn--sm" data-decline="' + m.meeting_id + '">Decline</button>', '<button class="btn btn--sm" data-accept="' + m.meeting_id + '">Accept</button>');
+                } else {
+                    note = 'Waiting for ' + esc(A.firstName(m.other_name)) + ' to confirm';
+                    actions.push('<button class="btn btn--ghost btn--sm" data-cancel="' + m.meeting_id + '">Withdraw</button>');
+                }
+            }
             if (m.status === 'scheduled') {
+                if (m.meeting_link) actions.push('<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="' + esc(m.meeting_link) + '">Join call</a>');
                 if (when <= now) actions.push('<button class="btn btn--sm" data-done="' + m.meeting_id + '">Mark complete</button>');
                 actions.push('<button class="btn btn--ghost btn--sm" data-cancel="' + m.meeting_id + '">Cancel</button>');
-                if (m.meeting_link) actions.unshift('<a class="btn btn--ghost btn--sm" target="_blank" rel="noopener" href="' + esc(m.meeting_link) + '">Join link</a>');
             }
             if (m.can_review) actions.push('<button class="btn btn--copper btn--sm" data-review="' + m.meeting_id + '">Leave a review</button>');
             return '<div class="item"><div class="item__main">' + person(m.other_name, A.fmtDateTime(m.scheduled_at) + ' · ' + m.duration_min + ' min') +
-                (m.rating ? '<div class="item__text">' + A.stars(m.rating) + (m.comment ? ' <span class="muted">' + esc(m.comment) + '</span>' : '') + '</div>' : '') + '</div><div class="item__actions">' + A.badge(m.status) + actions.join('') + '</div></div>';
+                (note ? '<div class="item__text">' + note + '</div>' : '') +
+                (m.rating ? '<div class="item__text">' + A.stars(m.rating) + (m.comment ? ' <span class="muted">' + esc(m.comment) + '</span>' : '') + '</div>' : '') + '</div><div class="item__actions">' + A.badge(status) + actions.join('') + '</div></div>';
         }
 
         const form = matches.length === 0
@@ -437,11 +498,12 @@
             : '<form class="card" id="bk" novalidate><div class="row"><div class="field"><label for="bk-m">With</label><select class="select" id="bk-m" name="match">' + matches.map(function (m) { return '<option value="' + m.request_id + '"' + (m.request_id === pre ? ' selected' : '') + '>' + esc(m.other_name) + '</option>'; }).join('') + '</select></div>' +
             '<div class="field"><label for="bk-d">Date and time (your timezone)</label><input class="input" id="bk-d" name="when" type="datetime-local" required></div>' +
             '<div class="field"><label for="bk-l">Length</label><select class="select" id="bk-l" name="len"><option value="30">30 minutes</option><option value="45">45 minutes</option><option value="60">60 minutes</option><option value="90">90 minutes</option></select></div></div>' +
-            '<div class="field"><label for="bk-k">Meeting link</label><input class="input" id="bk-k" name="link" maxlength="255" placeholder="Paste a video call link (optional)"></div><div class="form-error" id="bkErr" role="alert"></div><button class="btn" type="submit">Book meeting</button></form>';
+            '<div class="field"><label for="bk-k">Video call link</label><input class="input" id="bk-k" name="link" maxlength="255" placeholder="Leave empty and a private call room is created for you"><span class="hint">The other person has to confirm the time before it is booked. Once confirmed, you both get a Join call button.</span></div><div class="form-error" id="bkErr" role="alert"></div><button class="btn" type="submit">Send proposal</button></form>';
 
         shell(
-            head(s.role === 'alumni' ? 'Mentor' : 'Student', 'Meetings', 'Times are stored in UTC and shown in your timezone.') +
-            section('Book a meeting', '', form) +
+            head(s.role === 'alumni' ? 'Mentor' : 'Student', 'Meetings', 'Propose a time, the other person confirms it, then you both join the same call. Times are shown in your timezone.') +
+            section('Propose a meeting', '', form) +
+            (proposals.length ? section('Waiting for an answer', proposals.length + (proposals.length === 1 ? ' proposal' : ' proposals'), '<div class="list">' + proposals.map(row).join('') + '</div>', 'proposals') : '') +
             section('Upcoming', upcoming.length + ' booked', '<div class="list">' + (upcoming.length ? upcoming.map(row).join('') : A.empty('Nothing upcoming', 'Booked meetings appear here.')) + '</div>') +
             section('Past and closed', past.length + ' meetings', '<div class="list">' + (past.length ? past.map(row).join('') : A.empty('No history yet')) + '</div>')
         );
@@ -462,7 +524,7 @@
                 btn.disabled = true;
                 try {
                     await api('POST', '/meetings', { requestId: Number(bk.match.value), scheduledAt: new Date(bk.when.value).toISOString(), durationMin: Number(bk.len.value), meetingLink: bk.link.value.trim() });
-                    A.toast('Meeting booked');
+                    A.toast('Proposal sent. It is booked once they confirm.');
                     refresh();
                 } catch (ex) {
                     err.textContent = ex.message;
@@ -473,14 +535,16 @@
         async function setStatus(id, status) {
             try {
                 await api('PATCH', '/meetings/' + id, { status: status });
-                A.toast(status === 'completed' ? 'Marked complete' : 'Meeting cancelled');
+                A.toast({ completed: 'Marked complete', scheduled: 'Meeting confirmed', declined: 'Proposal declined', cancelled: 'Cancelled' }[status]);
                 refresh();
             } catch (e) { A.toast(e.message, true); }
         }
         view.querySelectorAll('[data-done]').forEach(function (b) { b.onclick = function () { setStatus(b.dataset.done, 'completed'); }; });
+        view.querySelectorAll('[data-accept]').forEach(function (b) { b.onclick = function () { setStatus(b.dataset.accept, 'scheduled'); }; });
+        view.querySelectorAll('[data-decline]').forEach(function (b) { b.onclick = function () { setStatus(b.dataset.decline, 'declined'); }; });
         view.querySelectorAll('[data-cancel]').forEach(function (b) {
             b.onclick = async function () {
-                if (await A.confirmDialog('Cancel this meeting?', 'The other person will not be notified automatically.', 'Cancel meeting', true)) setStatus(b.dataset.cancel, 'cancelled');
+                if (await A.confirmDialog('Cancel this meeting?', 'The other person is notified straight away.', 'Cancel meeting', true)) setStatus(b.dataset.cancel, 'cancelled');
             };
         });
         view.querySelectorAll('[data-review]').forEach(function (b) {
@@ -537,7 +601,7 @@
 
         shell(
             head('Administrator', 'Overview', 'Everything below is read from views and queries in the database.') +
-            '<div class="stats stats--four">' + stat(st.totalUsers, 'Users') + stat(st.students, 'Students') + stat(st.mentors, 'Mentors') + stat(st.activeMatches, 'Active matches') + stat(st.pending, 'Pending') + stat(st.completedMeetings, 'Meetings done') + stat(st.messages, 'Messages') + stat(st.avgRating === null ? '–' : st.avgRating.toFixed(1), 'Average rating') + '</div>' +
+            '<div class="stats stats--four">' + stat(st.totalUsers, 'Users', 'admin-users.html') + stat(st.students, 'Students', 'admin-users.html') + stat(st.mentors, 'Mentors', 'admin-users.html') + stat(st.activeMatches, 'Active matches', 'admin-matches.html') + stat(st.pending, 'Pending', 'admin-matches.html') + stat(st.completedMeetings, 'Meetings done') + stat(st.messages, 'Messages') + stat(st.avgRating === null ? '–' : st.avgRating.toFixed(1), 'Average rating') + '</div>' +
             '<div class="split section"><div class="card"><div class="section__head" style="margin-top:0"><h2>Requests by month</h2></div>' + bars(an.monthly) + '</div>' +
             '<div class="card" style="text-align:center"><div class="section__head" style="margin-top:0"><h2>Acceptance rate</h2></div><div style="display:grid;place-items:center;padding:14px 0"><div class="ring" style="--p:' + (an.acceptanceRate || 0) + '"><b>' + (an.acceptanceRate === null ? '–' : an.acceptanceRate + '%') + '</b></div></div><p class="muted">Accepted out of all decided requests.</p></div></div>' +
             section('Skills in demand', 'students and mentors', '<div class="card">' + an.skills.map(function (k) {

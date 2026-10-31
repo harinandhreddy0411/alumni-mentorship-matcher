@@ -9,6 +9,7 @@ DROP TRIGGER IF EXISTS trg_messages_ai;
 DROP TRIGGER IF EXISTS trg_meetings_bi;
 DROP TRIGGER IF EXISTS trg_meetings_bu;
 DROP TRIGGER IF EXISTS trg_meetings_ai;
+DROP TRIGGER IF EXISTS trg_meetings_au;
 DROP TRIGGER IF EXISTS trg_reviews_bi;
 DROP VIEW IF EXISTS v_active_matches;
 DROP VIEW IF EXISTS v_pending_queue;
@@ -193,24 +194,45 @@ BEGIN
     DECLARE v_student INT;
     DECLARE v_alumni INT;
     DECLARE v_name VARCHAR(100);
+    DECLARE v_to INT;
     SELECT student_id, alumni_id INTO v_student, v_alumni
       FROM mentorship_requests WHERE request_id = NEW.request_id;
     SELECT full_name INTO v_name FROM users WHERE user_id = NEW.sender_id;
-    INSERT INTO notifications (user_id, kind, message)
-    VALUES (IF(NEW.sender_id = v_student, v_alumni, v_student), 'message',
-            CONCAT('New message from ', v_name));
+    SET v_to = IF(NEW.sender_id = v_student, v_alumni, v_student);
+    IF NOT EXISTS (SELECT 1 FROM notifications
+                    WHERE user_id = v_to AND kind = 'message' AND is_read = 0
+                      AND message = CONCAT('New message from ', v_name)) THEN
+        INSERT INTO notifications (user_id, kind, message)
+        VALUES (v_to, 'message', CONCAT('New message from ', v_name));
+    END IF;
 END$$
 
 CREATE TRIGGER trg_meetings_bi BEFORE INSERT ON meetings
 FOR EACH ROW
 BEGIN
     DECLARE v_status VARCHAR(10);
-    SELECT status INTO v_status FROM mentorship_requests WHERE request_id = NEW.request_id;
+    DECLARE v_student INT;
+    DECLARE v_alumni INT;
+    DECLARE v_clash INT;
+    SELECT status, student_id, alumni_id INTO v_status, v_student, v_alumni
+      FROM mentorship_requests WHERE request_id = NEW.request_id;
     IF v_status IS NULL OR v_status <> 'accepted' THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Meetings can only be booked for accepted matches';
     END IF;
-    IF NEW.status = 'scheduled' AND NEW.scheduled_at <= UTC_TIMESTAMP() THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pick a time in the future';
+    IF NEW.status IN ('proposed', 'scheduled') THEN
+        IF NEW.scheduled_at <= UTC_TIMESTAMP() THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pick a time in the future';
+        END IF;
+        SELECT COUNT(*) INTO v_clash
+          FROM meetings m
+          JOIN mentorship_requests r ON r.request_id = m.request_id
+         WHERE m.status IN ('proposed', 'scheduled')
+           AND (r.student_id IN (v_student, v_alumni) OR r.alumni_id IN (v_student, v_alumni))
+           AND m.scheduled_at < DATE_ADD(NEW.scheduled_at, INTERVAL NEW.duration_min MINUTE)
+           AND NEW.scheduled_at < DATE_ADD(m.scheduled_at, INTERVAL m.duration_min MINUTE);
+        IF v_clash > 0 THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'One of you already has a meeting that overlaps this time';
+        END IF;
     END IF;
 END$$
 
@@ -218,8 +240,14 @@ CREATE TRIGGER trg_meetings_bu BEFORE UPDATE ON meetings
 FOR EACH ROW
 BEGIN
     IF NEW.status <> OLD.status THEN
-        IF OLD.status <> 'scheduled' THEN
+        IF OLD.status IN ('completed', 'cancelled', 'declined') THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This meeting is already closed';
+        END IF;
+        IF OLD.status = 'proposed' AND NEW.status NOT IN ('scheduled', 'declined', 'cancelled') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A proposal has to be accepted before it can be completed';
+        END IF;
+        IF NEW.status = 'scheduled' AND OLD.scheduled_at <= UTC_TIMESTAMP() THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This proposal has expired';
         END IF;
         IF NEW.status = 'completed' AND OLD.scheduled_at > UTC_TIMESTAMP() THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A meeting cannot be completed before it starts';
@@ -232,12 +260,47 @@ FOR EACH ROW
 BEGIN
     DECLARE v_student INT;
     DECLARE v_alumni INT;
+    DECLARE v_name VARCHAR(100);
+    DECLARE v_when VARCHAR(30);
     SELECT student_id, alumni_id INTO v_student, v_alumni
       FROM mentorship_requests WHERE request_id = NEW.request_id;
-    IF NEW.status = 'scheduled' THEN
+    SET v_when = DATE_FORMAT(NEW.scheduled_at, '%Y-%m-%dT%H:%i:00Z');
+    IF NEW.status = 'proposed' AND NEW.proposed_by IS NOT NULL THEN
+        SELECT full_name INTO v_name FROM users WHERE user_id = NEW.proposed_by;
         INSERT INTO notifications (user_id, kind, message)
-        VALUES (v_student, 'meeting', CONCAT('Meeting booked for ', DATE_FORMAT(NEW.scheduled_at, '%d %b %Y %H:%i'), ' UTC')),
-               (v_alumni,  'meeting', CONCAT('Meeting booked for ', DATE_FORMAT(NEW.scheduled_at, '%d %b %Y %H:%i'), ' UTC'));
+        VALUES (IF(NEW.proposed_by = v_student, v_alumni, v_student), 'meeting',
+                CONCAT(v_name, ' proposed a meeting for {t:', v_when, '}'));
+    ELSEIF NEW.status = 'scheduled' THEN
+        INSERT INTO notifications (user_id, kind, message)
+        VALUES (v_student, 'meeting', CONCAT('Meeting set for {t:', v_when, '}')),
+               (v_alumni,  'meeting', CONCAT('Meeting set for {t:', v_when, '}'));
+    END IF;
+END$$
+
+CREATE TRIGGER trg_meetings_au AFTER UPDATE ON meetings
+FOR EACH ROW
+BEGIN
+    DECLARE v_student INT;
+    DECLARE v_alumni INT;
+    DECLARE v_name VARCHAR(100);
+    DECLARE v_when VARCHAR(30);
+    DECLARE v_to INT;
+    IF NEW.status <> OLD.status AND NEW.acted_by IS NOT NULL THEN
+        SELECT student_id, alumni_id INTO v_student, v_alumni
+          FROM mentorship_requests WHERE request_id = NEW.request_id;
+        SELECT full_name INTO v_name FROM users WHERE user_id = NEW.acted_by;
+        SET v_when = DATE_FORMAT(NEW.scheduled_at, '%Y-%m-%dT%H:%i:00Z');
+        SET v_to = IF(NEW.acted_by = v_student, v_alumni, v_student);
+        IF NEW.status = 'scheduled' THEN
+            INSERT INTO notifications (user_id, kind, message)
+            VALUES (v_to, 'meeting', CONCAT(v_name, ' confirmed the meeting for {t:', v_when, '}'));
+        ELSEIF NEW.status = 'declined' THEN
+            INSERT INTO notifications (user_id, kind, message)
+            VALUES (v_to, 'meeting', CONCAT(v_name, ' declined the meeting for {t:', v_when, '}'));
+        ELSEIF NEW.status = 'cancelled' THEN
+            INSERT INTO notifications (user_id, kind, message)
+            VALUES (v_to, 'meeting', CONCAT(v_name, ' cancelled the meeting on {t:', v_when, '}'));
+        END IF;
     END IF;
 END$$
 
@@ -303,13 +366,20 @@ CREATE PROCEDURE sp_book_meeting(IN p_user INT, IN p_request INT, IN p_at DATETI
 BEGIN
     DECLARE v_student INT;
     DECLARE v_alumni INT;
+    DECLARE v_link VARCHAR(255);
     SELECT student_id, alumni_id INTO v_student, v_alumni
       FROM mentorship_requests WHERE request_id = p_request;
     IF v_student IS NULL OR p_user NOT IN (v_student, v_alumni) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You are not part of this match';
     END IF;
-    INSERT INTO meetings (request_id, scheduled_at, duration_min, meeting_link)
-    VALUES (p_request, p_at, p_duration, p_link);
+    SET v_link = NULLIF(TRIM(COALESCE(p_link, '')), '');
+    IF v_link IS NULL THEN
+        SET v_link = CONCAT('https://meet.jit.si/Alumni-', p_request, '-', SUBSTRING(MD5(CONCAT(UUID(), RAND())), 1, 10));
+    ELSEIF v_link NOT REGEXP '^https?://[^ ]+$' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The meeting link must start with http:// or https://';
+    END IF;
+    INSERT INTO meetings (request_id, scheduled_at, duration_min, status, meeting_link, proposed_by)
+    VALUES (p_request, p_at, p_duration, 'proposed', v_link, p_user);
     SELECT LAST_INSERT_ID() AS meeting_id;
 END$$
 
@@ -317,16 +387,20 @@ CREATE PROCEDURE sp_set_meeting_status(IN p_user INT, IN p_meeting INT, IN p_sta
 BEGIN
     DECLARE v_student INT;
     DECLARE v_alumni INT;
-    IF p_status NOT IN ('completed', 'cancelled') THEN
+    DECLARE v_proposer INT;
+    IF p_status NOT IN ('scheduled', 'declined', 'completed', 'cancelled') THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Invalid status';
     END IF;
-    SELECT r.student_id, r.alumni_id INTO v_student, v_alumni
+    SELECT r.student_id, r.alumni_id, m.proposed_by INTO v_student, v_alumni, v_proposer
       FROM meetings m JOIN mentorship_requests r ON r.request_id = m.request_id
      WHERE m.meeting_id = p_meeting;
     IF v_student IS NULL OR p_user NOT IN (v_student, v_alumni) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Meeting not found';
     END IF;
-    UPDATE meetings SET status = p_status WHERE meeting_id = p_meeting;
+    IF p_status IN ('scheduled', 'declined') AND v_proposer IS NOT NULL AND v_proposer = p_user THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'The other person has to answer your proposal';
+    END IF;
+    UPDATE meetings SET status = p_status, acted_by = p_user WHERE meeting_id = p_meeting;
 END$$
 
 CREATE PROCEDURE sp_submit_review(IN p_student INT, IN p_meeting INT, IN p_rating INT, IN p_comment TEXT)
@@ -347,7 +421,10 @@ BEGIN
            RANK() OVER (ORDER BY t.shared_skills DESC, COALESCE(t.avg_rating, 0) DESC) AS rank_pos
       FROM (SELECT ml.alumni_id, ml.full_name, ml.focus_track, ml.professional_bio,
                    ml.open_slots, ml.avg_rating, ml.review_count,
-                   fn_match_score(p_student, ml.alumni_id) AS shared_skills
+                   fn_match_score(p_student, ml.alumni_id) AS shared_skills,
+                   (SELECT GROUP_CONCAT(sk.name ORDER BY FIELD(us.level, 'expert', 'intermediate', 'beginner'), sk.name SEPARATOR '|')
+                      FROM user_skills us JOIN skills sk ON sk.skill_id = us.skill_id
+                     WHERE us.user_id = ml.alumni_id) AS skills
               FROM v_mentor_load ml
              WHERE ml.capacity_status = 'active'
                AND ml.open_slots > 0

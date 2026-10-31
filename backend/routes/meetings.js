@@ -15,7 +15,7 @@ function toUtcSql(value) {
 router.get('/meetings', participant, async (req, res) => {
     const uid = req.user.user_id;
     const [rows] = await pool.query(
-        `SELECT m.meeting_id, m.request_id, m.duration_min, m.status, m.meeting_link,
+        `SELECT m.meeting_id, m.request_id, m.duration_min, m.status, m.meeting_link, m.proposed_by,
                 DATE_FORMAT(m.scheduled_at, '%Y-%m-%dT%H:%i:%sZ') AS scheduled_at,
                 r.student_id, r.alumni_id,
                 IF(r.student_id = ?, a.full_name, s.full_name) AS other_name,
@@ -39,6 +39,8 @@ router.get('/meetings', participant, async (req, res) => {
         other_name: m.other_name,
         rating: m.rating,
         comment: m.comment,
+        proposed_by_me: m.proposed_by === uid,
+        can_respond: m.status === 'proposed' && m.proposed_by !== uid,
         can_review: m.student_id === uid && m.status === 'completed' && m.rating === null
     }));
     res.json({ success: true, meetings });
@@ -60,7 +62,7 @@ router.post('/meetings', participant, async (req, res) => {
 
 router.patch('/meetings/:id', participant, async (req, res) => {
     const { status } = req.body;
-    if (!['completed', 'cancelled'].includes(status)) {
+    if (!['scheduled', 'declined', 'completed', 'cancelled'].includes(status)) {
         return res.status(400).json({ success: false, error: 'Invalid status' });
     }
     await pool.query('CALL sp_set_meeting_status(?, ?, ?)', [req.user.user_id, req.params.id, status]);

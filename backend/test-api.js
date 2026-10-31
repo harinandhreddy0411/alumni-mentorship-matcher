@@ -51,7 +51,12 @@ function check(label, cond, extra) {
     r = await call('PUT', '/profile', st, { fullName: 'Test Student', email: 's@example.com', focusTrack: 'Data Science', bio: 'Learning' });
     check('profile update', r.data.success);
     r = await call('GET', '/skills', st);
+    check('skill catalog is seeded by migration', r.data.skills.length >= 30);
     const skillIds = r.data.skills.slice(0, 2).map(s => s.skill_id);
+    r = await call('POST', '/skills', st, { name: 'Rust ' + Date.now() });
+    check('custom skill can be added', r.data.success && r.data.skill.category === 'Other', r.data);
+    r = await call('POST', '/skills', st, { name: 'x' });
+    check('tiny skill name rejected', r.status === 400);
     r = await call('PUT', '/profile/skills', st, { skills: skillIds.map(id => ({ skillId: id, level: 'beginner' })) });
     check('student skills saved', r.data.success);
     await call('PUT', '/profile/skills', mt, { skills: [{ skillId: skillIds[0], level: 'expert' }] });
@@ -121,6 +126,15 @@ function check(label, cond, extra) {
     r = await call('GET', '/meetings', mt);
     const meeting = r.data.meetings.find(x => x.meeting_id === meetingId);
     check('alumni sees meeting in UTC', meeting && meeting.scheduled_at.endsWith('Z') && meeting.other_name === 'Test Student');
+    check('mentor is asked to respond', meeting.status === 'proposed' && meeting.can_respond === true);
+    r = await call('GET', '/meetings', st);
+    check('proposer is only waiting', r.data.meetings.find(x => x.meeting_id === meetingId).can_respond === false);
+    r = await call('PATCH', '/meetings/' + meetingId, st, { status: 'scheduled' });
+    check('proposer cannot accept own proposal', r.status === 400);
+    r = await call('POST', '/meetings', mt, { requestId: reqId, scheduledAt: future, durationMin: 30 });
+    check('overlapping proposal rejected', r.status === 400 && /overlaps/.test(r.data.error), r.data);
+    r = await call('PATCH', '/meetings/' + meetingId, mt, { status: 'scheduled' });
+    check('mentor accepts the proposal', r.data.success);
     r = await call('PATCH', '/meetings/' + meetingId, mt, { status: 'completed' });
     check('cannot complete early', r.status === 400);
     r = await call('PATCH', '/meetings/' + meetingId, st, { status: 'cancelled' });

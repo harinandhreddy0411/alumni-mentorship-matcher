@@ -168,6 +168,7 @@ const reviewComments = [
     }
 
     let reviewed = 0;
+    let upcomingSeq = 0;
     for (const m of accepted) {
         const meetingsToMake = 1 + Math.floor(rand() * 2);
         for (let i = 0; i < meetingsToMake; i++) {
@@ -183,7 +184,10 @@ const reviewComments = [
             }
         }
         if (rand() < 0.6) {
-            await q('CALL sp_book_meeting(?, ?, ?, ?, ?)', [m.alumni, m.request_id, fmt(new Date(Date.now() + (2 + Math.floor(rand() * 10)) * 86400000)), 45, 'https://meet.example.com/' + Math.floor(rand() * 1e6)]);
+            upcomingSeq++;
+            const at = new Date(Date.now() + (2 + Math.floor(rand() * 10)) * 86400000 + upcomingSeq * 2 * 3600000);
+            const [[{ meeting_id }]] = await q('CALL sp_book_meeting(?, ?, ?, ?, ?)', [m.alumni, m.request_id, fmt(at), 45, null]);
+            if (rand() < 0.7) await q('CALL sp_set_meeting_status(?, ?, ?)', [m.student, meeting_id, 'scheduled']);
         }
         const base = Date.now() - Math.max(1, m.age - 2) * 86400000;
         for (let i = 0; i < chat.length; i++) {

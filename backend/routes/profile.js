@@ -35,6 +35,17 @@ router.get('/skills', requireSession, async (req, res) => {
     res.json({ success: true, skills: rows });
 });
 
+router.post('/skills', requireSession, requireRole('student', 'alumni'), async (req, res) => {
+    const name = String(req.body.name || '').replace(/[|]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (name.length < 2 || name.length > 40) {
+        return res.status(400).json({ success: false, error: 'A skill name needs 2 to 40 characters' });
+    }
+    const [found] = await pool.query('SELECT skill_id, name, category FROM skills WHERE name = ?', [name]);
+    if (found.length > 0) return res.json({ success: true, skill: found[0] });
+    const [result] = await pool.query("INSERT INTO skills (name, category) VALUES (?, 'Other')", [name]);
+    res.json({ success: true, skill: { skill_id: result.insertId, name, category: 'Other' } });
+});
+
 router.put('/profile/skills', requireSession, requireRole('student', 'alumni'), async (req, res) => {
     const items = Array.isArray(req.body.skills) ? req.body.skills : [];
     const levels = ['beginner', 'intermediate', 'expert'];

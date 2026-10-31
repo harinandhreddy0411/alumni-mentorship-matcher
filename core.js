@@ -68,6 +68,22 @@
         return fmtDate(v);
     }
 
+    function localNote(text) {
+        return String(text)
+            .replace(/\{t:([^}]+)\}/g, function (m, iso) { return fmtDateTime(iso) || iso; })
+            .replace(/(\d{1,2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}) UTC/g, function (m, t) {
+                const d = new Date(t + ' UTC');
+                return Number.isNaN(d.getTime()) ? m : fmtDateTime(d.toISOString());
+            });
+    }
+
+    function noteLink(kind) {
+        if (kind === 'message') return 'messages.html';
+        if (kind === 'meeting') return 'meetings.html';
+        const role = (session.read() || {}).role;
+        return (HOME[role] || 'index.html') + '#requests';
+    }
+
     function stars(n) {
         if (n === null || n === undefined) return '<span class="muted">No reviews yet</span>';
         const full = Math.round(n);
@@ -276,7 +292,7 @@
                     notes.innerHTML = d.notifications.length === 0
                         ? '<div class="note">Nothing yet.<small>Requests, messages and meetings show up here.</small></div>'
                         : d.notifications.map(function (n) {
-                            return '<div class="note' + (n.is_read ? '' : ' note--new') + '">' + esc(n.message) + '<small>' + esc(ago(n.created_ts)) + '</small></div>';
+                            return '<a class="note' + (n.is_read ? '' : ' note--new') + '" href="' + noteLink(n.kind) + '">' + esc(localNote(n.message)) + '<small>' + esc(ago(n.created_ts)) + '</small></a>';
                         }).join('');
                 } catch (e) {}
             };

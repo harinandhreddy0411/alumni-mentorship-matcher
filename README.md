@@ -32,6 +32,9 @@ Twelve tables in BCNF.
 | A closed request cannot be reopened | BEFORE UPDATE trigger |
 | Chat only between the two people of an accepted match | BEFORE INSERT trigger on messages |
 | Meetings only for accepted matches, only in the future | BEFORE INSERT trigger on meetings |
+| A meeting starts as a proposal and the other person has to accept it | sp_set_meeting_status plus BEFORE UPDATE trigger on meetings |
+| Nobody can hold two overlapping meetings | Overlap query inside the BEFORE INSERT trigger |
+| A video call link is always present: the given one, or a generated room | sp_book_meeting |
 | A meeting cannot be completed before it starts | BEFORE UPDATE trigger on meetings |
 | Reviews only for completed meetings, one per meeting | Trigger and UNIQUE on reviews.meeting_id |
 | Ratings 1 to 5, durations 15 to 180 minutes, mentees 1 to 20 | CHECK constraints |
@@ -47,7 +50,7 @@ Twelve tables in BCNF.
 
 ### Migrations
 
-SQL lives in `backend/db/sql`. `npm run migrate` applies each numbered file once, records it in `schema_migrations`, and re-applies the `R__` file that holds triggers, views and procedures.
+SQL lives in `backend/db/sql`. `npm run migrate` applies each numbered file once (004 adds the meeting proposal columns, 005 fills the skill catalog), records it in `schema_migrations`, and re-applies the `R__` file that holds triggers, views and procedures.
 
 ## Frontend
 
@@ -91,6 +94,8 @@ npm run seed
 npm run seed:demo
 npm start
 ```
+
+`npm start` runs the migrations first, so a deploy always brings the database up to date.
 
 `seed` creates the admin account. `seed:demo` adds 10 mentors, 24 students, requests, meetings, reviews and chat history. Demo accounts use the password `password123`, for example `priya.nair` or `aditya.kumar`.
 
