@@ -6,12 +6,12 @@ Built for 23CSE202 Database Management Systems, Amrita School of Computing, Amri
 
 ## Database
 
-Twelve tables in BCNF.
+Thirteen tables in BCNF.
 
 | Table | Holds |
 |---|---|
-| users | Every account. Role is student, alumni or admin |
-| alumni_details | Mentor capacity (status, maximum mentees, preferred hours) and verification (status, graduation year, department, verified by, verified at) |
+| users | Every account. Role is student, alumni or admin, plus department |
+| alumni_details | Mentor capacity (status, maximum mentees, preferred hours) and verification (status, graduation year, verified by, verified at) |
 | availability_slots | Weekly time slots a mentor offers |
 | skills, user_skills | Skill catalogue and the many-to-many link to users |
 | mentorship_requests | A student's request to a mentor and its status |
@@ -21,6 +21,7 @@ Twelve tables in BCNF.
 | notifications | Per-user alerts raised by triggers |
 | audit_log | Who changed what, written by triggers |
 | sessions | Login tokens with an expiry |
+| alumni_invites | One-time codes from an admin or a verified alumnus. An admin code verifies the new alumnus at once; an alumnus code only vouches |
 
 ### Rules enforced inside MySQL
 
@@ -29,7 +30,10 @@ Twelve tables in BCNF.
 | Only students send requests, only to alumni, only to mentors who are active and verified | BEFORE INSERT trigger on mentorship_requests |
 | No duplicate open request to the same mentor | Same trigger |
 | A mentor cannot accept past max_mentees | BEFORE UPDATE trigger, run inside sp_respond_request with a row lock |
-| A closed request cannot be reopened | BEFORE UPDATE trigger |
+| A closed request cannot be reopened. A student can withdraw only a pending request | BEFORE UPDATE trigger, sp_withdraw_request |
+| Mentors from the student's own department rank higher on equal shared skills | sp_recommend_mentors |
+| An alumnus is hidden until verified. Only an admin account can change the status | trg_alumni_bu, sp_verify_alumnus |
+| Invite codes are single use, expire in 14 days, and an alumnus can hold 3 unused ones | sp_create_invite, sp_redeem_invite |
 | Chat only between the two people of an accepted match | BEFORE INSERT trigger on messages |
 | Meetings only for accepted matches, only in the future | BEFORE INSERT trigger on meetings |
 | A meeting starts as a proposal and the other person has to accept it | sp_set_meeting_status plus BEFORE UPDATE trigger on meetings |
@@ -50,7 +54,7 @@ Twelve tables in BCNF.
 
 ### Migrations
 
-SQL lives in `backend/db/sql`. `npm run migrate` applies each numbered file once (004 adds the meeting proposal columns, 005 fills the skill catalog, 006 adds alumni verification), records it in `schema_migrations`, and re-applies the `R__` file that holds triggers, views and procedures.
+SQL lives in `backend/db/sql`. `npm run migrate` applies each numbered file once (004 adds the meeting proposal columns, 005 fills the skill catalog, 006 adds alumni verification, 007 moves department to users, adds withdrawn requests and invite codes), records it in `schema_migrations`, and re-applies the `R__` file that holds triggers, views and procedures.
 
 ## Frontend
 

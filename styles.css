@@ -273,7 +273,7 @@ button.chip:hover { border-color: var(--copper); }
 .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .badge--pending { background: rgba(185, 130, 43, .14); color: #8a5f19; }
 .badge--accepted, .badge--completed, .badge--scheduled { background: rgba(77, 122, 82, .14); color: #3d6641; }
-.badge--declined, .badge--cancelled { background: rgba(165, 70, 58, .12); color: #8a372d; }
+.badge--declined, .badge--cancelled, .badge--withdrawn { background: rgba(165, 70, 58, .12); color: #8a372d; }
 .badge--match { background: rgba(196, 123, 74, .16); color: var(--copper-deep); }
 .stars { color: var(--copper); letter-spacing: 2px; font-size: 14px; }
 .stars i { color: var(--sand); font-style: normal; }

@@ -113,8 +113,8 @@ const reviewComments = [
             "INSERT INTO users (username, password_hash, role, full_name, focus_track, professional_bio, email) VALUES (?, ?, 'alumni', ?, ?, ?, ?)",
             [username, hash, fullName, track, bio, `${username}@example.com`]
         );
-        await q('INSERT INTO alumni_details (alumni_id, capacity_status, max_mentees, preferred_hours, verification_status, graduation_year, department, verified_at) VALUES (?, ?, ?, ?, \'verified\', ?, ?, NOW())',
-            [r.insertId, 'active', max, 'Weekday evenings and Saturday mornings', 2010 + (r.insertId % 12), 'CSE']);
+        await q('INSERT INTO alumni_details (alumni_id, capacity_status, max_mentees, preferred_hours, verification_status, graduation_year, verified_at) VALUES (?, ?, ?, ?, \'verified\', ?, NOW())',
+            [r.insertId, 'active', max, 'Weekday evenings and Saturday mornings', 2010 + (r.insertId % 12)]);
         for (const n of skillNames) {
             await q('INSERT INTO user_skills (user_id, skill_id, level) VALUES (?, ?, ?)', [r.insertId, skillId[n], pick(['intermediate', 'expert', 'expert'])]);
         }
@@ -196,6 +196,8 @@ const reviewComments = [
                 [m.request_id, sender, chat[i][1], 1, fmt(new Date(base + i * 3600000))]);
         }
     }
+
+    await q("UPDATE users SET department = ELT(user_id % 4 + 1, 'CSE', 'CSE', 'ECE', 'EEE') WHERE role IN ('student', 'alumni') AND department IS NULL");
 
     console.log(`${alumniRows.length} alumni, ${studentRows.length} students, ${accepted.length} accepted matches, ${reviewed} reviews`);
     console.log('Demo login: any username above with password "password123", for example priya.nair or aditya.kumar');

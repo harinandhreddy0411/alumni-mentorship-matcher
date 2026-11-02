@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/profile', requireSession, async (req, res) => {
     const [rows] = await pool.query(
-        'SELECT full_name, email, focus_track, professional_bio, role FROM users WHERE user_id = ?',
+        'SELECT full_name, email, focus_track, department, professional_bio, role FROM users WHERE user_id = ?',
         [req.user.user_id]
     );
     const [skills] = await pool.query(
@@ -19,13 +19,13 @@ router.get('/profile', requireSession, async (req, res) => {
 });
 
 router.put('/profile', requireSession, async (req, res) => {
-    const { fullName, email, focusTrack, bio } = req.body;
+    const { fullName, email, focusTrack, department, bio } = req.body;
     if (!fullName || !String(fullName).trim()) {
         return res.status(400).json({ success: false, error: 'Name is required' });
     }
     await pool.query(
-        'UPDATE users SET full_name = ?, email = ?, focus_track = ?, professional_bio = ? WHERE user_id = ?',
-        [fullName, email || null, focusTrack || null, bio || null, req.user.user_id]
+        'UPDATE users SET full_name = ?, email = ?, focus_track = ?, department = ?, professional_bio = ? WHERE user_id = ?',
+        [fullName, email || null, focusTrack || null, String(department || '').trim().slice(0, 60) || null, bio || null, req.user.user_id]
     );
     res.json({ success: true });
 });
@@ -74,7 +74,7 @@ router.put('/profile/skills', requireSession, requireRole('student', 'alumni'), 
 
 router.get('/capacity', requireSession, requireRole('alumni'), async (req, res) => {
     const [rows] = await pool.query(
-        'SELECT capacity_status, max_mentees, preferred_hours, verification_status, graduation_year, department FROM alumni_details WHERE alumni_id = ?',
+        'SELECT capacity_status, max_mentees, preferred_hours, verification_status, graduation_year FROM alumni_details WHERE alumni_id = ?',
         [req.user.user_id]
     );
     const [slots] = await pool.query(

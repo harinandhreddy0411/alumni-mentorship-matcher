@@ -22,6 +22,9 @@ DROP PROCEDURE IF EXISTS sp_send_request;
 DROP PROCEDURE IF EXISTS sp_respond_request;
 DROP PROCEDURE IF EXISTS sp_cancel_match;
 DROP PROCEDURE IF EXISTS sp_verify_alumnus;
+DROP PROCEDURE IF EXISTS sp_withdraw_request;
+DROP PROCEDURE IF EXISTS sp_create_invite;
+DROP PROCEDURE IF EXISTS sp_redeem_invite;
 DROP PROCEDURE IF EXISTS sp_book_meeting;
 DROP PROCEDURE IF EXISTS sp_set_meeting_status;
 DROP PROCEDURE IF EXISTS sp_submit_review;
@@ -47,7 +50,7 @@ WHERE r.status = 'pending';
 CREATE VIEW v_mentor_load AS
 SELECT u.user_id AS alumni_id, u.full_name, u.focus_track, u.professional_bio,
        ad.capacity_status, ad.max_mentees,
-       ad.verification_status, ad.graduation_year, ad.department,
+       ad.verification_status, ad.graduation_year, u.department,
        (SELECT COUNT(*) FROM mentorship_requests r
          WHERE r.alumni_id = ad.alumni_id AND r.status = 'accepted') AS current_mentees,
        ad.max_mentees - (SELECT COUNT(*) FROM mentorship_requests r
@@ -140,8 +143,11 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A request cannot be reassigned';
     END IF;
     IF NEW.status <> OLD.status THEN
-        IF OLD.status = 'declined' OR (OLD.status = 'accepted' AND NEW.status <> 'declined') THEN
+        IF OLD.status IN ('declined', 'withdrawn') OR (OLD.status = 'accepted' AND NEW.status <> 'declined') THEN
             SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This request is already closed';
+        END IF;
+        IF NEW.status = 'withdrawn' AND OLD.status <> 'pending' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only a pending request can be withdrawn';
         END IF;
         IF NEW.status = 'accepted' THEN
             SELECT COUNT(*) INTO v_accepted FROM mentorship_requests
@@ -170,12 +176,20 @@ FOR EACH ROW
 BEGIN
     DECLARE v_name VARCHAR(100);
     IF NEW.status <> OLD.status THEN
-        SELECT full_name INTO v_name FROM users WHERE user_id = NEW.alumni_id;
-        INSERT INTO notifications (user_id, kind, message)
-        VALUES (NEW.student_id, 'request', CONCAT(v_name, ' ', NEW.status, ' your request'));
-        INSERT INTO audit_log (actor_id, action, entity, entity_id, detail)
-        VALUES (NEW.alumni_id, CONCAT('request_', NEW.status), 'mentorship_requests', NEW.request_id,
-                CONCAT(OLD.status, ' to ', NEW.status));
+        IF NEW.status = 'withdrawn' THEN
+            SELECT full_name INTO v_name FROM users WHERE user_id = NEW.student_id;
+            INSERT INTO notifications (user_id, kind, message)
+            VALUES (NEW.alumni_id, 'request', CONCAT(v_name, ' withdrew their request'));
+            INSERT INTO audit_log (actor_id, action, entity, entity_id, detail)
+            VALUES (NEW.student_id, 'request_withdrawn', 'mentorship_requests', NEW.request_id, 'pending to withdrawn');
+        ELSE
+            SELECT full_name INTO v_name FROM users WHERE user_id = NEW.alumni_id;
+            INSERT INTO notifications (user_id, kind, message)
+            VALUES (NEW.student_id, 'request', CONCAT(v_name, ' ', NEW.status, ' your request'));
+            INSERT INTO audit_log (actor_id, action, entity, entity_id, detail)
+            VALUES (NEW.alumni_id, CONCAT('request_', NEW.status), 'mentorship_requests', NEW.request_id,
+                    CONCAT(OLD.status, ' to ', NEW.status));
+        END IF;
     END IF;
 END$$
 
@@ -462,11 +476,15 @@ END$$
 
 CREATE PROCEDURE sp_recommend_mentors(IN p_student INT)
 BEGIN
+    DECLARE v_dept VARCHAR(60);
+    SELECT department INTO v_dept FROM users WHERE user_id = p_student;
     SELECT t.*,
-           RANK() OVER (ORDER BY t.shared_skills DESC, COALESCE(t.avg_rating, 0) DESC) AS rank_pos
+           RANK() OVER (ORDER BY t.shared_skills DESC, t.same_department DESC, COALESCE(t.avg_rating, 0) DESC) AS rank_pos
       FROM (SELECT ml.alumni_id, ml.full_name, ml.focus_track, ml.professional_bio,
+                   ml.department, ml.graduation_year,
                    ml.open_slots, ml.avg_rating, ml.review_count,
                    fn_match_score(p_student, ml.alumni_id) AS shared_skills,
+                   (v_dept IS NOT NULL AND ml.department = v_dept) AS same_department,
                    (SELECT GROUP_CONCAT(sk.name ORDER BY FIELD(us.level, 'expert', 'intermediate', 'beginner'), sk.name SEPARATOR '|')
                       FROM user_skills us JOIN skills sk ON sk.skill_id = us.skill_id
                      WHERE us.user_id = ml.alumni_id) AS skills
@@ -478,6 +496,61 @@ BEGIN
                                 WHERE r.student_id = p_student AND r.alumni_id = ml.alumni_id
                                   AND r.status IN ('pending', 'accepted'))) t
      ORDER BY rank_pos, t.full_name;
+END$$
+
+CREATE PROCEDURE sp_withdraw_request(IN p_student INT, IN p_request INT)
+BEGIN
+    UPDATE mentorship_requests SET status = 'withdrawn'
+     WHERE request_id = p_request AND student_id = p_student AND status = 'pending';
+    IF ROW_COUNT() = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Pending request not found';
+    END IF;
+END$$
+
+CREATE PROCEDURE sp_create_invite(IN p_user INT)
+BEGIN
+    DECLARE v_role VARCHAR(10);
+    DECLARE v_status VARCHAR(10);
+    DECLARE v_open INT;
+    DECLARE v_code VARCHAR(20);
+    SELECT role INTO v_role FROM users WHERE user_id = p_user;
+    IF v_role IS NULL OR v_role NOT IN ('admin', 'alumni') THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only an admin or a verified alumnus can create invite codes';
+    END IF;
+    IF v_role = 'alumni' THEN
+        SELECT verification_status INTO v_status FROM alumni_details WHERE alumni_id = p_user;
+        IF v_status IS NULL OR v_status <> 'verified' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only an admin or a verified alumnus can create invite codes';
+        END IF;
+        SELECT COUNT(*) INTO v_open FROM alumni_invites
+         WHERE created_by = p_user AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP;
+        IF v_open >= 3 THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You already have 3 unused invite codes';
+        END IF;
+    END IF;
+    SET v_code = CONCAT('ALM-', UPPER(SUBSTRING(MD5(CONCAT(UUID(), RAND())), 1, 8)));
+    INSERT INTO alumni_invites (code, created_by, expires_at)
+    VALUES (v_code, p_user, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 14 DAY));
+    SELECT v_code AS code, DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 14 DAY) AS expires_at;
+END$$
+
+CREATE PROCEDURE sp_redeem_invite(IN p_code VARCHAR(20), IN p_user INT)
+BEGIN
+    DECLARE v_invite INT;
+    DECLARE v_creator INT;
+    DECLARE v_creator_role VARCHAR(10);
+    SELECT invite_id, created_by INTO v_invite, v_creator FROM alumni_invites
+     WHERE code = p_code AND used_at IS NULL AND expires_at > CURRENT_TIMESTAMP FOR UPDATE;
+    IF v_invite IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This invite code is not valid';
+    END IF;
+    UPDATE alumni_invites SET used_by = p_user, used_at = CURRENT_TIMESTAMP WHERE invite_id = v_invite;
+    SELECT role INTO v_creator_role FROM users WHERE user_id = v_creator;
+    IF v_creator_role = 'admin' THEN
+        UPDATE alumni_details SET verification_status = 'verified', verified_by = v_creator WHERE alumni_id = p_user;
+        INSERT INTO audit_log (actor_id, action, entity, entity_id, detail)
+        VALUES (v_creator, 'alumni_verified', 'alumni_details', p_user, 'Verified by admin invite code');
+    END IF;
 END$$
 
 DELIMITER ;

@@ -29,7 +29,7 @@ function ok(label, cond) {
     const tag = 't' + Date.now();
     const mk = async (name, role, verified) => {
         const r = await q('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)', [`${tag}_${name}`, 'x', role, name]);
-        if (role === 'alumni') await q("INSERT INTO alumni_details (alumni_id, verification_status, graduation_year, department) VALUES (?, ?, 2019, 'CSE')", [r.insertId, verified === false ? 'pending' : 'verified']);
+        if (role === 'alumni') await q("INSERT INTO alumni_details (alumni_id, verification_status, graduation_year) VALUES (?, ?, 2019)", [r.insertId, verified === false ? 'pending' : 'verified']);
         return r.insertId;
     };
     const s1 = await mk('Stu One', 'student');
@@ -128,16 +128,62 @@ function ok(label, cond) {
     const [recs4] = await q('CALL sp_recommend_mentors(?)', [s2]);
     ok('verified alumnus now recommended', recs4.some(r => r.alumni_id === a3));
 
+    const sd = await mk('Stu Dept', 'student');
+    const ad1 = await mk('Alu Dept One', 'alumni');
+    const ad2 = await mk('Alu Dept Two', 'alumni');
+    await q("UPDATE users SET department = 'ECE' WHERE user_id IN (?, ?)", [sd, ad2]);
+    await q("UPDATE users SET department = 'CSE' WHERE user_id = ?", [ad1]);
+    const [recsD] = await q('CALL sp_recommend_mentors(?)', [sd]);
+    const pos1 = recsD.find(r => r.alumni_id === ad1);
+    const pos2 = recsD.find(r => r.alumni_id === ad2);
+    ok('same department ranks ahead on equal skills', Number(pos2.same_department) === 1 && Number(pos1.same_department) === 0 && Number(pos2.rank_pos) < Number(pos1.rank_pos));
+
+    await q('CALL sp_send_request(?,?,?,?)', [sd, ad1, 'x', 'please guide me']);
+    const wd = await q('SELECT request_id FROM mentorship_requests WHERE student_id = ?', [sd]);
+    await expectError('another student cannot withdraw it', () => q('CALL sp_withdraw_request(?,?)', [s2, wd[0].request_id]), 'Pending request not found');
+    await q('CALL sp_withdraw_request(?,?)', [sd, wd[0].request_id]);
+    const wst = await q('SELECT status FROM mentorship_requests WHERE request_id = ?', [wd[0].request_id]);
+    ok('student withdraws a pending request', wst[0].status === 'withdrawn');
+    const wn = await q("SELECT COUNT(*) AS c FROM notifications WHERE user_id = ? AND message LIKE '%withdrew%'", [ad1]);
+    ok('mentor notified of the withdrawal', wn[0].c === 1);
+    await expectError('withdrawn request cannot be withdrawn again', () => q('CALL sp_withdraw_request(?,?)', [sd, wd[0].request_id]), 'Pending request not found');
+    await expectError('withdrawn request cannot be accepted', () => q('CALL sp_respond_request(?,?,?)', [ad1, wd[0].request_id, 'accepted']), 'Pending request not found');
+    await q('CALL sp_send_request(?,?,?,?)', [sd, ad1, 'x', 'asking again']);
+    ok('student can ask the same mentor again after withdrawing', true);
+
+    const un = await mk('Alu Unverified', 'alumni', false);
+    await expectError('unverified alumnus cannot create invites', () => q('CALL sp_create_invite(?)', [un]), 'verified alumnus');
+    await expectError('student cannot create invites', () => q('CALL sp_create_invite(?)', [s2]), 'verified alumnus');
+    const [inv] = await q('CALL sp_create_invite(?)', [adm]);
+    const adminCode = inv[0].code;
+    ok('admin creates an invite code', /^ALM-[0-9A-F]{8}$/.test(adminCode));
+    const newA = await mk('Alu Invited', 'alumni', false);
+    await q('CALL sp_redeem_invite(?,?)', [adminCode, newA]);
+    const nv = await q('SELECT verification_status, verified_by FROM alumni_details WHERE alumni_id = ?', [newA]);
+    ok('admin invite verifies the new alumnus', nv[0].verification_status === 'verified' && nv[0].verified_by === adm);
+    const newB = await mk('Alu Reuse', 'alumni', false);
+    await expectError('invite code works only once', () => q('CALL sp_redeem_invite(?,?)', [adminCode, newB]), 'not valid');
+    await expectError('unknown invite code rejected', () => q('CALL sp_redeem_invite(?,?)', ['ALM-NOPE0000', newB]), 'not valid');
+    const [inv2] = await q('CALL sp_create_invite(?)', [a1]);
+    await q('CALL sp_redeem_invite(?,?)', [inv2[0].code, newB]);
+    const nb = await q('SELECT verification_status FROM alumni_details WHERE alumni_id = ?', [newB]);
+    ok('alumnus invite only vouches, admin still approves', nb[0].verification_status === 'pending');
+    await q('CALL sp_create_invite(?)', [a1]);
+    await q('CALL sp_create_invite(?)', [a1]);
+    await q('CALL sp_create_invite(?)', [a1]);
+    await expectError('alumnus limited to 3 unused codes', () => q('CALL sp_create_invite(?)', [a1]), '3 unused');
+
     await expectError('admin cannot be deleted', () => q('DELETE FROM users WHERE user_id = ?', [adm]), 'Admin accounts');
 
     await q('INSERT INTO sessions (user_id, token) VALUES (?, ?)', [s1, tag]);
     const sess = await q('SELECT expires_at FROM sessions WHERE user_id = ?', [s1]);
     ok('session expiry set by trigger', sess[0].expires_at !== null);
 
-    await q('DELETE FROM users WHERE user_id IN (?, ?, ?, ?, ?)', [s1, s2, a1, a2, a3]);
+    await q('DELETE FROM users WHERE user_id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [s1, s2, a1, a2, a3, sd, ad1, ad2, newA, newB, un]);
     const left = await q('SELECT (SELECT COUNT(*) FROM mentorship_requests WHERE student_id = ? OR alumni_id = ?) AS r, (SELECT COUNT(*) FROM meetings WHERE meeting_id = ?) AS m', [s1, a1, m1]);
     ok('cascade removes requests and meetings', left[0].r === 0 && left[0].m === 0);
     await q('UPDATE users SET role = ? WHERE user_id = ?', ['student', adm]);
+    await q('DELETE FROM alumni_invites WHERE created_by = ?', [adm]);
     await q('DELETE FROM users WHERE user_id = ?', [adm]);
     await q('DELETE FROM skills WHERE skill_id = ?', [sqlId]);
     await q('DELETE FROM skills WHERE name = ?', [tag + 'react']);

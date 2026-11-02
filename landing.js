@@ -252,7 +252,8 @@
         const isAlumni = roleSel.value === 'alumni';
         alumniFields.hidden = !isAlumni;
         alumniNote.hidden = !isAlumni;
-        alumniFields.querySelectorAll('input').forEach(function (i) { i.required = isAlumni; });
+        document.getElementById('su-d').required = isAlumni;
+        document.getElementById('su-y').required = isAlumni;
     });
 
     forms.signup.addEventListener('submit', function (e) {
@@ -265,7 +266,8 @@
                 password: fd.get('password'),
                 role: fd.get('role'),
                 graduationYear: fd.get('graduationYear'),
-                department: String(fd.get('department') || '').trim()
+                department: String(fd.get('department') || '').trim(),
+                inviteCode: String(fd.get('inviteCode') || '').trim()
             }, { auth: false });
             await signIn(username, fd.get('password'));
             location.href = 'profile.html?welcome=1';

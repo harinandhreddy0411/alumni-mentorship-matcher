@@ -118,11 +118,12 @@
                     <div class="field"><label for="su-u">Username</label><input class="input" id="su-u" name="username" autocomplete="username" required></div>
                     <div class="field"><label for="su-r">I am a</label><select class="select" id="su-r" name="role"><option value="student">Student</option><option value="alumni">Alumnus or alumna</option></select></div>
                 </div>
+                <div class="field"><label for="su-d">Department</label><input class="input" id="su-d" name="department" maxlength="60" placeholder="For example: CSE"></div>
                 <div class="row" id="su-alumni" hidden>
                     <div class="field"><label for="su-y">Graduation year</label><input class="input" id="su-y" name="graduationYear" type="number" min="1990" max="2100" inputmode="numeric"></div>
-                    <div class="field"><label for="su-d">Department</label><input class="input" id="su-d" name="department" maxlength="60" placeholder="For example: CSE"></div>
+                    <div class="field"><label for="su-i">Invite code</label><input class="input" id="su-i" name="inviteCode" maxlength="20" placeholder="Optional"></div>
                 </div>
-                <p class="hint" id="su-note" hidden>An administrator checks alumni accounts before students can see them.</p>
+                <p class="hint" id="su-note" hidden>With an invite code from an admin you are verified at once. Without one, an administrator checks your account first.</p>
                 <div class="field"><label for="su-p">Password</label><input class="input" id="su-p" name="password" type="password" minlength="6" autocomplete="new-password" required><span class="hint">At least 6 characters.</span></div>
                 <div class="form-error" role="alert"></div>
                 <button class="btn" type="submit" style="width:100%">Create account</button>

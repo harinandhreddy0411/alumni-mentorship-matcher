@@ -89,8 +89,8 @@
         const cards = mentors.length === 0
             ? '<div class="list">' + A.empty('No mentors available right now', 'Everyone is full or paused. Check back soon.') + '</div>'
             : '<div class="grid">' + mentors.map(function (m) {
-                return '<a class="card" href="request-mentor.html?mentor=' + m.alumni_id + '"><div class="card__top"><div class="who"><span class="avatar">' + esc(A.initials(m.full_name)) + '</span><div><h3>' + esc(m.full_name) + '</h3><div class="card__meta">' + esc(m.focus_track || 'Mentor') + '</div></div></div>' +
-                    (m.shared_skills > 0 ? '<span class="badge badge--match">' + m.shared_skills + ' shared</span>' : '') + '</div>' +
+                return '<a class="card" href="request-mentor.html?mentor=' + m.alumni_id + '"><div class="card__top"><div class="who"><span class="avatar">' + esc(A.initials(m.full_name)) + '</span><div><h3>' + esc(m.full_name) + '</h3><div class="card__meta">' + esc(m.focus_track || 'Mentor') + (m.department ? ' · ' + esc(m.department) : '') + (m.graduation_year ? ' · Class of ' + m.graduation_year : '') + '</div></div></div>' +
+                    (m.shared_skills > 0 ? '<span class="badge badge--match">' + m.shared_skills + ' shared</span>' : '') + (m.same_department ? '<span class="badge badge--match">Your department</span>' : '') + '</div>' +
                     '<p class="card__bio">' + esc(m.professional_bio || 'No bio yet.') + '</p>' + skillChips(m.skills, mine, 5) +
                     '<div class="card__foot"><span>' + A.stars(m.avg_rating) + (m.review_count ? ' <span class="muted">(' + m.review_count + ')</span>' : '') + '</span><span>' + m.open_slots + ' open ' + (m.open_slots === 1 ? 'place' : 'places') + '</span></div></a>';
             }).join('') + '</div>';
@@ -100,6 +100,7 @@
             : '<div class="list">' + requests.map(function (q) {
                 return '<div class="item"><div class="item__main">' + person(q.mentor_name, (q.focus_area || 'General') + ' · sent ' + A.ago(q.creation_ts)) +
                     '<div class="item__text">' + esc(q.pitch_message) + '</div></div><div class="item__actions">' + A.badge(q.status) +
+                    (q.status === 'pending' ? '<button class="btn btn--ghost btn--sm" data-withdraw="' + q.request_id + '">Withdraw</button>' : '') +
                     (q.status === 'accepted' ? '<a class="btn btn--sm" href="messages.html?match=' + q.request_id + '">Message</a><a class="btn btn--ghost btn--sm" href="meetings.html?match=' + q.request_id + '">Book</a>' : '') + '</div></div>';
             }).join('') + '</div>';
 
@@ -111,6 +112,12 @@
             section('Your requests', requests.length + ' in total', reqList, 'requests') +
             (upcoming.length ? section('Upcoming meetings', '', meetingRows(upcoming)) : '')
         );
+        view.querySelectorAll('[data-withdraw]').forEach(function (b) {
+            b.onclick = async function () {
+                if (!(await A.confirmDialog('Withdraw this request?', 'The mentor is told, and you can ask them again later.', 'Withdraw', true))) return;
+                try { await api('POST', '/requests/' + b.dataset.withdraw + '/withdraw'); A.toast('Request withdrawn'); pages.student(s); } catch (e) { A.toast(e.message, true); }
+            };
+        });
     };
 
     pages.mentor = async function (s) {
@@ -138,7 +145,7 @@
         shell(
             '<a class="muted" href="student-dashboard.html">← All mentors</a><div style="height:24px"></div>' +
             '<div class="split"><div>' +
-            '<div class="who" style="gap:22px;margin-bottom:26px"><span class="avatar avatar--lg">' + esc(A.initials(m.full_name)) + '</span><div><p class="eyebrow">' + esc(m.focus_track || 'Mentor') + '</p><h1 style="font-size:clamp(34px,4vw,56px);margin-top:8px">' + esc(m.full_name) + '</h1><div style="margin-top:10px">' + A.stars(m.avg_rating) + (m.review_count ? ' <span class="muted">' + m.review_count + ' reviews</span>' : '') + '</div></div></div>' +
+            '<div class="who" style="gap:22px;margin-bottom:26px"><span class="avatar avatar--lg">' + esc(A.initials(m.full_name)) + '</span><div><p class="eyebrow">' + esc(m.focus_track || 'Mentor') + (m.department ? ' · ' + esc(m.department) : '') + (m.graduation_year ? ' · Class of ' + m.graduation_year : '') + '</p><h1 style="font-size:clamp(34px,4vw,56px);margin-top:8px">' + esc(m.full_name) + '</h1><div style="margin-top:10px">' + A.stars(m.avg_rating) + (m.review_count ? ' <span class="muted">' + m.review_count + ' reviews</span>' : '') + '</div></div></div>' +
             '<p style="font-size:18px;color:var(--ink-2);max-width:60ch">' + esc(m.professional_bio || 'This mentor has not written a bio yet.') + '</p>' +
             section('Skills', m.shared_skills + ' in common with you', skills) +
             section('Usually free', 'In the mentor\'s own timezone', week) +
@@ -169,7 +176,7 @@
 
     pages.alumni = async function (s) {
         loading();
-        const r = await Promise.all([api('GET', '/requests/incoming'), api('GET', '/requests/mentees'), api('GET', '/capacity'), api('GET', '/meetings'), api('GET', '/matches/mine'), api('GET', '/profile')]);
+        const r = await Promise.all([api('GET', '/requests/incoming'), api('GET', '/requests/mentees'), api('GET', '/capacity'), api('GET', '/meetings'), api('GET', '/matches/mine'), api('GET', '/profile'), api('GET', '/invites')]);
         const mySkills = new Set(r[5].skills.map(function (x) { return x.name; }));
         const incoming = r[0].requests;
         const mentees = r[1].mentees;
@@ -203,8 +210,10 @@
             '<div class="stats">' + stat(incoming.length, 'Pending requests', '#requests') + stat(mentees.length + ' / ' + cap.max_mentees, 'Mentees', '#mentees') + stat(cap.capacity_status === 'active' ? 'Open' : 'Paused', 'Status', 'manage-schedule.html') + stat(upcoming.length, 'Upcoming meetings', 'meetings.html') + '</div>' + proposalBanner(r[3].meetings) +
             section('Requests waiting', incoming.length + ' pending', incomingHtml, 'requests') +
             section('Your mentees', mentees.length + ' of ' + cap.max_mentees + ' places used', menteesHtml, 'mentees') +
+            (cap.verification_status === 'verified' ? inviteBlock(r[6].invites, 'you can vouch for up to 3 new alumni') : '') +
             (upcoming.length ? section('Upcoming meetings', '', meetingRows(upcoming)) : '')
         );
+        wireInvites(function () { pages.alumni(s); });
 
         view.querySelectorAll('[data-act]').forEach(function (b) {
             b.onclick = async function () {
@@ -312,6 +321,7 @@
             '<form id="pf" novalidate><div class="two"><div class="card"><div class="field"><label for="pf-n">Full name</label><input class="input" id="pf-n" name="fullName" value="' + esc(p.full_name) + '" required></div>' +
             '<div class="field"><label for="pf-e">Email</label><input class="input" id="pf-e" name="email" type="email" value="' + esc(p.email || '') + '"><span class="hint">Shown to a mentor or mentee only after a request is accepted.</span></div>' +
             '<div class="field"><label for="pf-t">Focus track</label><select class="select" id="pf-t" name="focusTrack"><option value="">Not set</option>' + tracks.map(function (t) { return '<option' + (t === p.focus_track ? ' selected' : '') + '>' + esc(t) + '</option>'; }).join('') + '</select></div>' +
+            '<div class="field"><label for="pf-d">Department</label><input class="input" id="pf-d" name="department" maxlength="60" value="' + esc(p.department || '') + '" placeholder="For example: CSE"><span class="hint">Mentors from your department are ranked higher for you.</span></div>' +
             '<div class="field"><label for="pf-b">Bio</label><textarea class="textarea" id="pf-b" name="bio" maxlength="1000" placeholder="' + (s.role === 'alumni' ? 'What you do now and what you can help with.' : 'Where you are and what you are working towards.') + '">' + esc(p.professional_bio || '') + '</textarea></div></div>' +
             '<div class="card"><h3>Skills</h3><p class="muted" style="margin:8px 0 20px">' + (s.role === 'alumni' ? 'Tap what you can mentor on. Students see these on your card.' : 'Tap what you know and what you want to learn. Mentors are ranked by how many you share.') + '</p><div id="skills">' + skillsHtml() + '</div><div class="skilladd"><input class="input" id="skNew" maxlength="40" placeholder="Not listed? Add your own skill" autocomplete="off"><button type="button" class="btn btn--ghost" id="skAdd">Add</button></div><div class="form-error" id="skErr" role="alert"></div><div class="section__head" style="margin-top:22px"><h3 style="font-size:20px">Your level</h3></div><div id="levels">' + levelsHtml() + '</div></div></div>' +
             '<div class="form-error" id="pfErr" role="alert" style="margin-top:20px"></div><div style="margin-top:12px"><button class="btn" type="submit">Save profile</button></div></form>'
@@ -366,7 +376,7 @@
             if (!f.fullName.value.trim()) { err.textContent = 'Your name is required.'; return; }
             btn.disabled = true;
             try {
-                await api('PUT', '/profile', { fullName: f.fullName.value.trim(), email: f.email.value.trim(), focusTrack: f.focusTrack.value, bio: f.bio.value.trim() });
+                await api('PUT', '/profile', { fullName: f.fullName.value.trim(), email: f.email.value.trim(), focusTrack: f.focusTrack.value, department: f.department.value.trim(), bio: f.bio.value.trim() });
                 await api('PUT', '/profile/skills', { skills: Object.keys(chosen).map(function (id) { return { skillId: Number(id), level: chosen[id] }; }) });
                 A.session.write(Object.assign({}, A.session.read(), { fullName: f.fullName.value.trim() }));
                 A.toast('Profile saved');
@@ -670,18 +680,36 @@
         };
     };
 
+    function inviteBlock(invites, note) {
+        const rows = invites.length === 0 ? '<div class="list">' + A.empty('No invite codes yet') + '</div>' :
+            '<div class="list">' + invites.map(function (i) {
+                const state = i.used_at ? 'Used' + (i.used_by_name ? ' by ' + esc(i.used_by_name) : '') : (new Date(i.expires_at).getTime() < Date.now() ? 'Expired' : 'Unused');
+                return '<div class="item"><div class="item__main"><div class="item__title" style="font-family:monospace;letter-spacing:.06em">' + esc(i.code) + '</div><div class="item__sub">Expires ' + A.fmtDate(i.expires_at) + '</div></div><span class="badge">' + state + '</span></div>';
+            }).join('') + '</div>';
+        return section('Invite codes', note, rows + '<div style="margin-top:16px"><button class="btn btn--sm" data-newinvite>Create invite code</button></div>');
+    }
+    function wireInvites(reload) {
+        const b = view.querySelector('[data-newinvite]');
+        if (!b) return;
+        b.onclick = async function () {
+            try { const d = await api('POST', '/invites'); A.toast('Invite code ' + d.invite.code + ' created'); reload(); } catch (e) { A.toast(e.message, true); }
+        };
+    }
+
     pages.adminAlumni = async function () {
         loading();
-        const list = (await api('GET', '/admin/alumni')).alumni;
+        const both = await Promise.all([api('GET', '/admin/alumni'), api('GET', '/invites')]);
+        const list = both[0].alumni;
         const label = { pending: 'Waiting', verified: 'Verified', rejected: 'Rejected' };
-        const table = list.length === 0 ? A.empty('No alumni accounts yet') : '<table class="table"><thead><tr><th>Name</th><th>Department</th><th>Graduated</th><th>Status</th><th>Decided by</th><th></th></tr></thead><tbody>' +
+        const table = list.length === 0 ? A.empty('No alumni accounts yet') : '<table class="table"><thead><tr><th>Name</th><th>Department</th><th>Graduated</th><th>Status</th><th>Decided by</th><th>Invited by</th><th></th></tr></thead><tbody>' +
             list.map(function (a) {
                 const verify = a.verification_status === 'verified' ? '' : '<button class="btn btn--sm" data-ok="' + a.user_id + '">Verify</button> ';
                 const reject = a.verification_status === 'pending' ? '<button class="btn btn--danger btn--sm" data-no="' + a.user_id + '">Reject</button>' : (a.verification_status === 'verified' ? '<button class="btn btn--danger btn--sm" data-no="' + a.user_id + '">Revoke</button>' : '');
-                return '<tr><td>' + esc(a.full_name) + '<div class="muted">' + esc(a.username) + '</div></td><td>' + esc(a.department || '–') + '</td><td>' + (a.graduation_year || '–') + '</td><td><span class="badge">' + label[a.verification_status] + '</span></td><td>' + esc(a.verified_by_name || '–') + '</td><td class="num">' + verify + reject + '</td></tr>';
+                return '<tr><td>' + esc(a.full_name) + '<div class="muted">' + esc(a.username) + '</div></td><td>' + esc(a.department || '–') + '</td><td>' + (a.graduation_year || '–') + '</td><td><span class="badge">' + label[a.verification_status] + '</span></td><td>' + esc(a.verified_by_name || '–') + '</td><td>' + esc(a.invited_by_name || '–') + '</td><td class="num">' + verify + reject + '</td></tr>';
             }).join('') + '</tbody></table>';
         const waiting = list.filter(function (a) { return a.verification_status === 'pending'; }).length;
-        shell(head('Administrator', 'Alumni verification', waiting + ' waiting. Only verified alumni appear to students and can receive requests.') + '<div class="table-wrap">' + table + '</div>');
+        shell(head('Administrator', 'Alumni verification', waiting + ' waiting. Only verified alumni appear to students and can receive requests.') + '<div class="table-wrap">' + table + '</div>' + inviteBlock(both[1].invites, 'a code from you verifies the new alumnus at once'));
+        wireInvites(pages.adminAlumni);
         function decide(attr, decision, title, text) {
             view.querySelectorAll('[' + attr + ']').forEach(function (b) {
                 b.onclick = async function () {

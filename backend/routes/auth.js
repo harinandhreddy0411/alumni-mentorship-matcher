@@ -11,7 +11,7 @@ router.get('/me', requireSession, (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const { username, password, role, fullName, graduationYear, department } = req.body;
+    const { username, password, role, fullName, graduationYear, department, inviteCode } = req.body;
     if (!username || !password || !role) {
         return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
@@ -35,11 +35,13 @@ router.post('/register', async (req, res) => {
     try {
         await conn.beginTransaction();
         const [result] = await conn.query(
-            'INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)',
-            [username, hash, role, fullName || username]
+            'INSERT INTO users (username, password_hash, role, full_name, department) VALUES (?, ?, ?, ?, ?)',
+            [username, hash, role, fullName || username, dept ? dept.slice(0, 60) : null]
         );
         if (role === 'alumni') {
-            await conn.query('INSERT INTO alumni_details (alumni_id, graduation_year, department) VALUES (?, ?, ?)', [result.insertId, gradYear, dept.slice(0, 60)]);
+            await conn.query('INSERT INTO alumni_details (alumni_id, graduation_year) VALUES (?, ?)', [result.insertId, gradYear]);
+            const code = String(inviteCode || '').trim().toUpperCase();
+            if (code) await conn.query('CALL sp_redeem_invite(?, ?)', [code, result.insertId]);
         }
         await conn.commit();
         res.json({ success: true, userId: result.insertId });

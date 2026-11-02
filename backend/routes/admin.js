@@ -26,11 +26,13 @@ router.get('/stats', async (req, res) => {
 
 router.get('/alumni', async (req, res) => {
     const [rows] = await pool.query(
-        `SELECT u.user_id, u.full_name, u.username, u.email, ad.graduation_year, ad.department,
-                ad.verification_status, ad.verified_at, a.full_name AS verified_by_name, u.creation_ts
+        `SELECT u.user_id, u.full_name, u.username, u.email, ad.graduation_year, u.department,
+                ad.verification_status, ad.verified_at, a.full_name AS verified_by_name, inv.full_name AS invited_by_name, u.creation_ts
          FROM alumni_details ad
          JOIN users u ON u.user_id = ad.alumni_id
          LEFT JOIN users a ON a.user_id = ad.verified_by
+         LEFT JOIN alumni_invites ai ON ai.used_by = u.user_id
+         LEFT JOIN users inv ON inv.user_id = ai.created_by
          ORDER BY FIELD(ad.verification_status, 'pending', 'rejected', 'verified'), u.creation_ts DESC`
     );
     res.json({ success: true, alumni: rows });

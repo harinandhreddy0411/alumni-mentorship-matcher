@@ -10,6 +10,7 @@ router.get('/mentors', requireSession, requireRole('student'), async (req, res) 
         ...m,
         avg_rating: m.avg_rating === null ? null : Number(m.avg_rating),
         shared_skills: Number(m.shared_skills),
+        same_department: Number(m.same_department) === 1,
         rank_pos: Number(m.rank_pos)
     }));
     res.json({ success: true, mentors });
@@ -68,6 +69,11 @@ router.get('/requests/mine', requireSession, requireRole('student'), async (req,
         [req.user.user_id]
     );
     res.json({ success: true, requests: rows });
+});
+
+router.post('/requests/:id/withdraw', requireSession, requireRole('student'), async (req, res) => {
+    await pool.query('CALL sp_withdraw_request(?, ?)', [req.user.user_id, req.params.id]);
+    res.json({ success: true });
 });
 
 router.get('/requests/incoming', requireSession, requireRole('alumni'), async (req, res) => {

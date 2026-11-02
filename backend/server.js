@@ -23,6 +23,7 @@ app.use('/api', require('./routes/mentorship'));
 app.use('/api', require('./routes/profile'));
 app.use('/api', require('./routes/messages'));
 app.use('/api', require('./routes/meetings'));
+app.use('/api', require('./routes/invites'));
 app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
