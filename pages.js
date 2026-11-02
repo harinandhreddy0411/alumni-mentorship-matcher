@@ -198,6 +198,7 @@
 
         shell(
             head('Mentor', 'Welcome, ' + A.firstName(s.fullName) + '.', 'Answer requests, talk to your mentees and keep your capacity current.', '<a class="btn btn--ghost" href="manage-schedule.html">Capacity and hours</a>') +
+            (cap.verification_status !== 'verified' ? '<div class="card card--dark" style="margin-bottom:24px"><h3>' + (cap.verification_status === 'rejected' ? 'Your account was not verified' : 'Waiting for verification') + '</h3><p class="muted" style="margin-top:6px">' + (cap.verification_status === 'rejected' ? 'Contact the administrator. Students cannot see you.' : 'An administrator is checking your graduation details. Students cannot see you until then.') + '</p></div>' : '') +
             (paused ? '<div class="card card--dark" style="margin-bottom:24px"><h3>You are paused</h3><p class="muted" style="margin-top:6px">Students cannot see you until you switch back to active in Capacity and hours.</p></div>' : '') +
             '<div class="stats">' + stat(incoming.length, 'Pending requests', '#requests') + stat(mentees.length + ' / ' + cap.max_mentees, 'Mentees', '#mentees') + stat(cap.capacity_status === 'active' ? 'Open' : 'Paused', 'Status', 'manage-schedule.html') + stat(upcoming.length, 'Upcoming meetings', 'meetings.html') + '</div>' + proposalBanner(r[3].meetings) +
             section('Requests waiting', incoming.length + ' pending', incomingHtml, 'requests') +
@@ -601,7 +602,7 @@
 
         shell(
             head('Administrator', 'Overview', 'Everything below is read from views and queries in the database.') +
-            '<div class="stats stats--four">' + stat(st.totalUsers, 'Users', 'admin-users.html') + stat(st.students, 'Students', 'admin-users.html') + stat(st.mentors, 'Mentors', 'admin-users.html') + stat(st.activeMatches, 'Active matches', 'admin-matches.html') + stat(st.pending, 'Pending', 'admin-matches.html') + stat(st.completedMeetings, 'Meetings done') + stat(st.messages, 'Messages') + stat(st.avgRating === null ? '–' : st.avgRating.toFixed(1), 'Average rating') + '</div>' +
+            '<div class="stats stats--four">' + stat(st.totalUsers, 'Users', 'admin-users.html') + stat(st.students, 'Students', 'admin-users.html') + stat(st.mentors, 'Verified mentors', 'admin-alumni.html') + stat(st.activeMatches, 'Active matches', 'admin-matches.html') + stat(st.pending, 'Pending', 'admin-matches.html') + stat(st.completedMeetings, 'Meetings done') + stat(st.messages, 'Messages') + stat(st.avgRating === null ? '–' : st.avgRating.toFixed(1), 'Average rating') + '</div>' +
             '<div class="split section"><div class="card"><div class="section__head" style="margin-top:0"><h2>Requests by month</h2></div>' + bars(an.monthly) + '</div>' +
             '<div class="card" style="text-align:center"><div class="section__head" style="margin-top:0"><h2>Acceptance rate</h2></div><div style="display:grid;place-items:center;padding:14px 0"><div class="ring" style="--p:' + (an.acceptanceRate || 0) + '"><b>' + (an.acceptanceRate === null ? '–' : an.acceptanceRate + '%') + '</b></div></div><p class="muted">Accepted out of all decided requests.</p></div></div>' +
             section('Skills in demand', 'students and mentors', '<div class="card">' + an.skills.map(function (k) {
@@ -669,6 +670,30 @@
         };
     };
 
+    pages.adminAlumni = async function () {
+        loading();
+        const list = (await api('GET', '/admin/alumni')).alumni;
+        const label = { pending: 'Waiting', verified: 'Verified', rejected: 'Rejected' };
+        const table = list.length === 0 ? A.empty('No alumni accounts yet') : '<table class="table"><thead><tr><th>Name</th><th>Department</th><th>Graduated</th><th>Status</th><th>Decided by</th><th></th></tr></thead><tbody>' +
+            list.map(function (a) {
+                const verify = a.verification_status === 'verified' ? '' : '<button class="btn btn--sm" data-ok="' + a.user_id + '">Verify</button> ';
+                const reject = a.verification_status === 'pending' ? '<button class="btn btn--danger btn--sm" data-no="' + a.user_id + '">Reject</button>' : (a.verification_status === 'verified' ? '<button class="btn btn--danger btn--sm" data-no="' + a.user_id + '">Revoke</button>' : '');
+                return '<tr><td>' + esc(a.full_name) + '<div class="muted">' + esc(a.username) + '</div></td><td>' + esc(a.department || '–') + '</td><td>' + (a.graduation_year || '–') + '</td><td><span class="badge">' + label[a.verification_status] + '</span></td><td>' + esc(a.verified_by_name || '–') + '</td><td class="num">' + verify + reject + '</td></tr>';
+            }).join('') + '</tbody></table>';
+        const waiting = list.filter(function (a) { return a.verification_status === 'pending'; }).length;
+        shell(head('Administrator', 'Alumni verification', waiting + ' waiting. Only verified alumni appear to students and can receive requests.') + '<div class="table-wrap">' + table + '</div>');
+        function decide(attr, decision, title, text) {
+            view.querySelectorAll('[' + attr + ']').forEach(function (b) {
+                b.onclick = async function () {
+                    if (decision === 'rejected' && !(await A.confirmDialog(title, text, 'Confirm', true))) return;
+                    try { await api('PATCH', '/admin/alumni/' + b.getAttribute(attr), { decision: decision }); A.toast(decision === 'verified' ? 'Alumnus verified' : 'Alumnus rejected'); pages.adminAlumni(); } catch (e) { A.toast(e.message, true); }
+                };
+            });
+        }
+        decide('data-ok', 'verified');
+        decide('data-no', 'rejected', 'Reject this alumnus?', 'They will be hidden from students and cannot receive new requests.');
+    };
+
     pages.adminMatches = async function () {
         loading();
         const r = await Promise.all([api('GET', '/admin/matches'), api('GET', '/admin/audit')]);
@@ -690,7 +715,7 @@
         });
     };
 
-    const ROLE = { student: 'student', mentor: 'student', alumni: 'alumni', schedule: 'alumni', profile: 'student,alumni', messages: 'student,alumni', meetings: 'student,alumni', adminHome: 'admin', adminUsers: 'admin', adminMatches: 'admin' };
+    const ROLE = { student: 'student', mentor: 'student', alumni: 'alumni', schedule: 'alumni', profile: 'student,alumni', messages: 'student,alumni', meetings: 'student,alumni', adminHome: 'admin', adminUsers: 'admin', adminMatches: 'admin', adminAlumni: 'admin' };
     const key = document.body.dataset.page;
     const s = A.guard(ROLE[key]);
     if (!s) return;

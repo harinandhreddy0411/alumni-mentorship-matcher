@@ -10,7 +10,8 @@ router.get('/stats', async (req, res) => {
     const [[row]] = await pool.query(
         `SELECT (SELECT COUNT(*) FROM users) AS totalUsers,
                 (SELECT COUNT(*) FROM users WHERE role = 'student') AS students,
-                (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS mentors,
+                (SELECT COUNT(*) FROM alumni_details WHERE verification_status = 'verified') AS mentors,
+                (SELECT COUNT(*) FROM alumni_details WHERE verification_status = 'pending') AS pendingVerification,
                 (SELECT COUNT(*) FROM mentorship_requests WHERE status = 'accepted') AS activeMatches,
                 (SELECT COUNT(*) FROM mentorship_requests WHERE status = 'pending') AS pending,
                 (SELECT COUNT(*) FROM meetings WHERE status = 'completed') AS completedMeetings,
@@ -21,6 +22,27 @@ router.get('/stats', async (req, res) => {
         success: true,
         stats: { ...row, avgRating: row.avgRating === null ? null : Number(row.avgRating) }
     });
+});
+
+router.get('/alumni', async (req, res) => {
+    const [rows] = await pool.query(
+        `SELECT u.user_id, u.full_name, u.username, u.email, ad.graduation_year, ad.department,
+                ad.verification_status, ad.verified_at, a.full_name AS verified_by_name, u.creation_ts
+         FROM alumni_details ad
+         JOIN users u ON u.user_id = ad.alumni_id
+         LEFT JOIN users a ON a.user_id = ad.verified_by
+         ORDER BY FIELD(ad.verification_status, 'pending', 'rejected', 'verified'), u.creation_ts DESC`
+    );
+    res.json({ success: true, alumni: rows });
+});
+
+router.patch('/alumni/:id', async (req, res) => {
+    const decision = req.body.decision;
+    if (!['verified', 'rejected'].includes(decision)) {
+        return res.status(400).json({ success: false, error: 'Decision must be verified or rejected' });
+    }
+    await pool.query('CALL sp_verify_alumnus(?, ?, ?)', [req.user.user_id, req.params.id, decision]);
+    res.json({ success: true });
 });
 
 router.get('/users', async (req, res) => {
@@ -51,7 +73,7 @@ router.post('/users', async (req, res) => {
             [username, hash, role, fullName || username]
         );
         if (role === 'alumni') {
-            await conn.query('INSERT INTO alumni_details (alumni_id) VALUES (?)', [result.insertId]);
+            await conn.query("INSERT INTO alumni_details (alumni_id, verification_status, verified_at) VALUES (?, 'verified', CURRENT_TIMESTAMP)", [result.insertId]);
         }
         await conn.commit();
         res.json({ success: true, userId: result.insertId });
@@ -92,7 +114,7 @@ router.put('/users/:id', async (req, res) => {
         );
         if (role === 'alumni' && previousRole !== 'alumni') {
             await conn.query(
-                'INSERT INTO alumni_details (alumni_id) VALUES (?) ON DUPLICATE KEY UPDATE alumni_id = alumni_id',
+                "INSERT INTO alumni_details (alumni_id, verification_status, verified_at) VALUES (?, 'verified', CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE alumni_id = alumni_id",
                 [req.params.id]
             );
         }
@@ -143,7 +165,7 @@ router.get('/analytics', async (req, res) => {
              SELECT alumni_id, full_name, focus_track, current_mentees, avg_rating, review_count,
                     RANK() OVER (PARTITION BY focus_track
                                  ORDER BY COALESCE(avg_rating, 0) DESC, current_mentees DESC) AS track_rank
-             FROM v_mentor_load
+             FROM v_mentor_load WHERE verification_status = 'verified'
          )
          SELECT alumni_id, full_name, focus_track, current_mentees, avg_rating, review_count, track_rank
          FROM ranked WHERE track_rank <= 3 AND focus_track IS NOT NULL
@@ -160,7 +182,8 @@ router.get('/analytics', async (req, res) => {
         `SELECT u.user_id, u.full_name, u.focus_track
          FROM users u
          LEFT JOIN mentorship_requests r ON r.alumni_id = u.user_id
-         WHERE u.role = 'alumni' AND r.request_id IS NULL
+         JOIN alumni_details ad ON ad.alumni_id = u.user_id
+         WHERE u.role = 'alumni' AND ad.verification_status = 'verified' AND r.request_id IS NULL
          ORDER BY u.full_name`
     );
     const decided = Number(rates.accepted || 0) + Number(rates.declined || 0);

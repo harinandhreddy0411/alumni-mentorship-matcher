@@ -1,4 +1,5 @@
 DROP TRIGGER IF EXISTS trg_users_bd;
+DROP TRIGGER IF EXISTS trg_alumni_bu;
 DROP TRIGGER IF EXISTS trg_sessions_bi;
 DROP TRIGGER IF EXISTS trg_requests_bi;
 DROP TRIGGER IF EXISTS trg_requests_bu;
@@ -20,6 +21,7 @@ DROP FUNCTION IF EXISTS fn_match_score;
 DROP PROCEDURE IF EXISTS sp_send_request;
 DROP PROCEDURE IF EXISTS sp_respond_request;
 DROP PROCEDURE IF EXISTS sp_cancel_match;
+DROP PROCEDURE IF EXISTS sp_verify_alumnus;
 DROP PROCEDURE IF EXISTS sp_book_meeting;
 DROP PROCEDURE IF EXISTS sp_set_meeting_status;
 DROP PROCEDURE IF EXISTS sp_submit_review;
@@ -45,6 +47,7 @@ WHERE r.status = 'pending';
 CREATE VIEW v_mentor_load AS
 SELECT u.user_id AS alumni_id, u.full_name, u.focus_track, u.professional_bio,
        ad.capacity_status, ad.max_mentees,
+       ad.verification_status, ad.graduation_year, ad.department,
        (SELECT COUNT(*) FROM mentorship_requests r
          WHERE r.alumni_id = ad.alumni_id AND r.status = 'accepted') AS current_mentees,
        ad.max_mentees - (SELECT COUNT(*) FROM mentorship_requests r
@@ -102,6 +105,7 @@ BEGIN
     DECLARE v_student_role VARCHAR(10);
     DECLARE v_alumni_role VARCHAR(10);
     DECLARE v_capacity VARCHAR(10);
+    DECLARE v_verified VARCHAR(10);
     SELECT role INTO v_student_role FROM users WHERE user_id = NEW.student_id;
     SELECT role INTO v_alumni_role FROM users WHERE user_id = NEW.alumni_id;
     IF v_student_role IS NULL OR v_student_role <> 'student' THEN
@@ -110,7 +114,10 @@ BEGIN
     IF v_alumni_role IS NULL OR v_alumni_role <> 'alumni' THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Requests can only be sent to alumni';
     END IF;
-    SELECT capacity_status INTO v_capacity FROM alumni_details WHERE alumni_id = NEW.alumni_id;
+    SELECT capacity_status, verification_status INTO v_capacity, v_verified FROM alumni_details WHERE alumni_id = NEW.alumni_id;
+    IF v_verified IS NULL OR v_verified <> 'verified' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This alumnus has not been verified yet';
+    END IF;
     IF v_capacity IS NULL OR v_capacity <> 'active' THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This mentor is not accepting mentees right now';
     END IF;
@@ -415,6 +422,44 @@ BEGIN
     INSERT INTO reviews (meeting_id, rating, comment) VALUES (p_meeting, p_rating, p_comment);
 END$$
 
+CREATE TRIGGER trg_alumni_bu BEFORE UPDATE ON alumni_details
+FOR EACH ROW
+BEGIN
+    DECLARE v_role VARCHAR(10);
+    IF NEW.verification_status <> OLD.verification_status THEN
+        IF NEW.verification_status = 'pending' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'A verification decision cannot be moved back to pending';
+        END IF;
+        SELECT role INTO v_role FROM users WHERE user_id = NEW.verified_by;
+        IF v_role IS NULL OR v_role <> 'admin' THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Only an admin can verify an alumnus';
+        END IF;
+        SET NEW.verified_at = CURRENT_TIMESTAMP;
+    END IF;
+END$$
+
+CREATE PROCEDURE sp_verify_alumnus(IN p_admin INT, IN p_alumni INT, IN p_decision VARCHAR(10))
+BEGIN
+    DECLARE v_status VARCHAR(10);
+    IF p_decision NOT IN ('verified', 'rejected') THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Decision must be verified or rejected';
+    END IF;
+    SELECT verification_status INTO v_status FROM alumni_details WHERE alumni_id = p_alumni;
+    IF v_status IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Alumnus not found';
+    END IF;
+    IF v_status = p_decision THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'This alumnus already has that status';
+    END IF;
+    UPDATE alumni_details SET verification_status = p_decision, verified_by = p_admin WHERE alumni_id = p_alumni;
+    INSERT INTO audit_log (actor_id, action, entity, entity_id, detail)
+    VALUES (p_admin, CONCAT('alumni_', p_decision), 'alumni_details', p_alumni, CONCAT('Verification set to ', p_decision));
+    INSERT INTO notifications (user_id, kind, message)
+    VALUES (p_alumni, 'verification',
+            IF(p_decision = 'verified', 'Your alumni account has been verified. Students can now find you.',
+                                         'Your alumni account was not verified. Contact the administrator.'));
+END$$
+
 CREATE PROCEDURE sp_recommend_mentors(IN p_student INT)
 BEGIN
     SELECT t.*,
@@ -427,6 +472,7 @@ BEGIN
                      WHERE us.user_id = ml.alumni_id) AS skills
               FROM v_mentor_load ml
              WHERE ml.capacity_status = 'active'
+               AND ml.verification_status = 'verified'
                AND ml.open_slots > 0
                AND NOT EXISTS (SELECT 1 FROM mentorship_requests r
                                 WHERE r.student_id = p_student AND r.alumni_id = ml.alumni_id

@@ -16,7 +16,7 @@ router.get('/mentors', requireSession, requireRole('student'), async (req, res) 
 });
 
 router.get('/mentors/:id', requireSession, requireRole('student'), async (req, res) => {
-    const [rows] = await pool.query('SELECT * FROM v_mentor_load WHERE alumni_id = ?', [req.params.id]);
+    const [rows] = await pool.query("SELECT * FROM v_mentor_load WHERE alumni_id = ? AND verification_status = 'verified'", [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, error: 'Mentor not found' });
     const [skills] = await pool.query(
         `SELECT s.name, s.category, us.level FROM user_skills us

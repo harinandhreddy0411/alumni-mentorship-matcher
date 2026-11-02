@@ -11,7 +11,7 @@ Twelve tables in BCNF.
 | Table | Holds |
 |---|---|
 | users | Every account. Role is student, alumni or admin |
-| alumni_details | Mentor capacity: status, maximum mentees, preferred hours |
+| alumni_details | Mentor capacity (status, maximum mentees, preferred hours) and verification (status, graduation year, department, verified by, verified at) |
 | availability_slots | Weekly time slots a mentor offers |
 | skills, user_skills | Skill catalogue and the many-to-many link to users |
 | mentorship_requests | A student's request to a mentor and its status |
@@ -26,7 +26,7 @@ Twelve tables in BCNF.
 
 | Rule | How |
 |---|---|
-| Only students send requests, only to alumni, only to mentors who are active | BEFORE INSERT trigger on mentorship_requests |
+| Only students send requests, only to alumni, only to mentors who are active and verified | BEFORE INSERT trigger on mentorship_requests |
 | No duplicate open request to the same mentor | Same trigger |
 | A mentor cannot accept past max_mentees | BEFORE UPDATE trigger, run inside sp_respond_request with a row lock |
 | A closed request cannot be reopened | BEFORE UPDATE trigger |
@@ -50,7 +50,7 @@ Twelve tables in BCNF.
 
 ### Migrations
 
-SQL lives in `backend/db/sql`. `npm run migrate` applies each numbered file once (004 adds the meeting proposal columns, 005 fills the skill catalog), records it in `schema_migrations`, and re-applies the `R__` file that holds triggers, views and procedures.
+SQL lives in `backend/db/sql`. `npm run migrate` applies each numbered file once (004 adds the meeting proposal columns, 005 fills the skill catalog, 006 adds alumni verification), records it in `schema_migrations`, and re-applies the `R__` file that holds triggers, views and procedures.
 
 ## Frontend
 

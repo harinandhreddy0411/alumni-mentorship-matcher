@@ -145,6 +145,7 @@ p { margin: 0; }
     box-shadow: 0 24px 60px rgba(0, 0, 0, .45), 0 0 0 1px rgba(246, 242, 234, .08);
     will-change: opacity, transform;
 }
+.medallion:nth-child(2) { left: auto; right: clamp(20px, 4vw, 90px); }
 .medallion canvas { width: 100%; height: 100%; }
 .linen__track { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
 .beat { height: 100vh; display: flex; align-items: center; justify-content: center; padding: 0 6vw; }
@@ -436,7 +437,7 @@ a.note:hover { background: var(--cream-2); }
     .app .nav { flex-wrap: wrap; height: auto; min-height: var(--nav-h); padding: 10px 16px; gap: 6px; }
     .app .nav__links { order: 3; width: 100%; overflow-x: auto; gap: 18px; padding-bottom: 4px; font-size: 14px; white-space: nowrap; }
     .app .page { padding-top: 132px; }
-    .medallion { left: 50%; top: 20%; transform: translate(-50%, -50%) scale(var(--s, 1)); }
+    .medallion, .medallion:nth-child(2) { left: 50%; right: auto; top: 20%; transform: translate(-50%, -50%) scale(var(--s, 1)); }
     .beat { padding-top: 22vh; }
     .steps, .figures { grid-template-columns: 1fr; }
     .step { border-right: 0; margin-right: 0; border-bottom: 1px solid var(--line); }

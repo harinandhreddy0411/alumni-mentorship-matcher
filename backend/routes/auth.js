@@ -11,12 +11,17 @@ router.get('/me', requireSession, (req, res) => {
 });
 
 router.post('/register', async (req, res) => {
-    const { username, password, role, fullName } = req.body;
+    const { username, password, role, fullName, graduationYear, department } = req.body;
     if (!username || !password || !role) {
         return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
     if (!['student', 'alumni'].includes(role)) {
         return res.status(400).json({ success: false, error: 'Invalid role' });
+    }
+    const gradYear = Number(graduationYear);
+    const dept = String(department || '').trim();
+    if (role === 'alumni' && (!Number.isInteger(gradYear) || gradYear < 1990 || gradYear > 2100 || dept.length < 2)) {
+        return res.status(400).json({ success: false, error: 'Alumni must give a graduation year and a department' });
     }
     if (String(password).length < 6) {
         return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
@@ -34,7 +39,7 @@ router.post('/register', async (req, res) => {
             [username, hash, role, fullName || username]
         );
         if (role === 'alumni') {
-            await conn.query('INSERT INTO alumni_details (alumni_id) VALUES (?)', [result.insertId]);
+            await conn.query('INSERT INTO alumni_details (alumni_id, graduation_year, department) VALUES (?, ?, ?)', [result.insertId, gradYear, dept.slice(0, 60)]);
         }
         await conn.commit();
         res.json({ success: true, userId: result.insertId });

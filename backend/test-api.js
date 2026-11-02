@@ -24,7 +24,7 @@ function check(label, cond, extra) {
     check('public summary needs no login', r.data.success && r.data.summary.mentors >= 0);
     r = await call('POST', '/auth/register', null, { username: tag + 's', password: pw, role: 'student', fullName: 'Test Student' });
     check('register student', r.data.success);
-    r = await call('POST', '/auth/register', null, { username: tag + 'm', password: pw, role: 'alumni', fullName: 'Test Mentor' });
+    r = await call('POST', '/auth/register', null, { username: tag + 'm', password: pw, role: 'alumni', fullName: 'Test Mentor', graduationYear: 2019, department: 'CSE' });
     check('register alumni', r.data.success);
     const mentorId = r.data.userId;
     r = await call('POST', '/auth/register', null, { username: tag + 's', password: pw, role: 'student' });
@@ -67,6 +67,23 @@ function check(label, cond, extra) {
     check('capacity saved with slots', r.data.success);
     r = await call('GET', '/capacity', mt);
     check('capacity read back', r.data.capacity.max_mentees === 1 && r.data.slots.length === 1);
+
+    r = await call('POST', '/auth/register', null, { username: tag + 'n', password: pw, role: 'alumni', fullName: 'No Year' });
+    check('alumni without graduation details rejected', r.status === 400);
+    r = await call('GET', '/mentors', st);
+    check('unverified alumnus hidden from students', !r.data.mentors.some(m => m.alumni_id === mentorId));
+    r = await call('GET', '/mentors/' + mentorId, st);
+    check('unverified alumnus detail not found', r.status === 404);
+    r = await call('GET', '/capacity', mt);
+    check('alumnus sees pending verification', r.data.capacity.verification_status === 'pending');
+    r = await call('PATCH', '/admin/alumni/' + mentorId, st, { decision: 'verified' });
+    check('student cannot verify alumni', r.status === 403);
+    r = await call('POST', '/auth/login', null, { username: 'admin', password: process.env.ADMIN_PASSWORD || 'adminpassword' });
+    const adm0 = r.data.token;
+    r = await call('GET', '/admin/alumni', adm0);
+    check('admin sees alumnus waiting', r.data.alumni.some(a => a.user_id === mentorId && a.verification_status === 'pending'));
+    r = await call('PATCH', '/admin/alumni/' + mentorId, adm0, { decision: 'verified' });
+    check('admin verifies alumnus', r.data.success);
 
     r = await call('GET', '/mentors', st);
     const found = r.data.mentors.find(m => m.alumni_id === mentorId);

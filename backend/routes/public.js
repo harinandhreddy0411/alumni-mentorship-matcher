@@ -5,7 +5,7 @@ const router = express.Router();
 
 router.get('/public/summary', async (req, res) => {
     const [[row]] = await pool.query(
-        `SELECT (SELECT COUNT(*) FROM users WHERE role = 'alumni') AS mentors,
+        `SELECT (SELECT COUNT(*) FROM alumni_details WHERE verification_status = 'verified') AS mentors,
                 (SELECT COUNT(*) FROM users WHERE role = 'student') AS students,
                 (SELECT COUNT(*) FROM mentorship_requests WHERE status = 'accepted') AS matches,
                 (SELECT COUNT(*) FROM meetings WHERE status = 'completed') AS meetings,

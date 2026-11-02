@@ -74,7 +74,7 @@ router.put('/profile/skills', requireSession, requireRole('student', 'alumni'), 
 
 router.get('/capacity', requireSession, requireRole('alumni'), async (req, res) => {
     const [rows] = await pool.query(
-        'SELECT capacity_status, max_mentees, preferred_hours FROM alumni_details WHERE alumni_id = ?',
+        'SELECT capacity_status, max_mentees, preferred_hours, verification_status, graduation_year, department FROM alumni_details WHERE alumni_id = ?',
         [req.user.user_id]
     );
     const [slots] = await pool.query(

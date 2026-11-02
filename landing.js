@@ -245,6 +245,16 @@
         });
     });
 
+    const roleSel = document.getElementById('su-r');
+    const alumniFields = document.getElementById('su-alumni');
+    const alumniNote = document.getElementById('su-note');
+    roleSel.addEventListener('change', function () {
+        const isAlumni = roleSel.value === 'alumni';
+        alumniFields.hidden = !isAlumni;
+        alumniNote.hidden = !isAlumni;
+        alumniFields.querySelectorAll('input').forEach(function (i) { i.required = isAlumni; });
+    });
+
     forms.signup.addEventListener('submit', function (e) {
         e.preventDefault();
         submit(forms.signup, async function (fd) {
@@ -253,7 +263,9 @@
                 fullName: String(fd.get('fullName')).trim(),
                 username: username,
                 password: fd.get('password'),
-                role: fd.get('role')
+                role: fd.get('role'),
+                graduationYear: fd.get('graduationYear'),
+                department: String(fd.get('department') || '').trim()
             }, { auth: false });
             await signIn(username, fd.get('password'));
             location.href = 'profile.html?welcome=1';

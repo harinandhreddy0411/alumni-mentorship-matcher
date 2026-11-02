@@ -113,8 +113,8 @@ const reviewComments = [
             "INSERT INTO users (username, password_hash, role, full_name, focus_track, professional_bio, email) VALUES (?, ?, 'alumni', ?, ?, ?, ?)",
             [username, hash, fullName, track, bio, `${username}@example.com`]
         );
-        await q('INSERT INTO alumni_details (alumni_id, capacity_status, max_mentees, preferred_hours) VALUES (?, ?, ?, ?)',
-            [r.insertId, 'active', max, 'Weekday evenings and Saturday mornings']);
+        await q('INSERT INTO alumni_details (alumni_id, capacity_status, max_mentees, preferred_hours, verification_status, graduation_year, department, verified_at) VALUES (?, ?, ?, ?, \'verified\', ?, ?, NOW())',
+            [r.insertId, 'active', max, 'Weekday evenings and Saturday mornings', 2010 + (r.insertId % 12), 'CSE']);
         for (const n of skillNames) {
             await q('INSERT INTO user_skills (user_id, skill_id, level) VALUES (?, ?, ?)', [r.insertId, skillId[n], pick(['intermediate', 'expert', 'expert'])]);
         }

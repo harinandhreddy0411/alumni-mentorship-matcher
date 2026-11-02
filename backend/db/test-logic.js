@@ -27,9 +27,9 @@ function ok(label, cond) {
     });
     const q = async (sql, params) => (await db.query(sql, params))[0];
     const tag = 't' + Date.now();
-    const mk = async (name, role) => {
+    const mk = async (name, role, verified) => {
         const r = await q('INSERT INTO users (username, password_hash, role, full_name) VALUES (?, ?, ?, ?)', [`${tag}_${name}`, 'x', role, name]);
-        if (role === 'alumni') await q('INSERT INTO alumni_details (alumni_id) VALUES (?)', [r.insertId]);
+        if (role === 'alumni') await q("INSERT INTO alumni_details (alumni_id, verification_status, graduation_year, department) VALUES (?, ?, 2019, 'CSE')", [r.insertId, verified === false ? 'pending' : 'verified']);
         return r.insertId;
     };
     const s1 = await mk('Stu One', 'student');
@@ -112,13 +112,29 @@ function ok(label, cond) {
     ok('recommendation ranks by shared skills', top && Number(top.shared_skills) === 1 && Number(top.rank_pos) === 1);
     ok('full mentor hidden from recommendations', !recs.some(r => r.alumni_id === a1));
 
+    const a3 = await mk('Alu Three', 'alumni', false);
+    await expectError('unverified alumnus cannot receive a request', () => q('CALL sp_send_request(?,?,?,?)', [s2, a3, 'x', 'hi']), 'not been verified');
+    const [recs3] = await q('CALL sp_recommend_mentors(?)', [s2]);
+    ok('unverified alumnus hidden from recommendations', !recs3.some(r => r.alumni_id === a3));
+    await expectError('student cannot verify an alumnus', () => q('CALL sp_verify_alumnus(?,?,?)', [s2, a3, 'verified']), 'Only an admin');
+    await expectError('invalid decision rejected', () => q('CALL sp_verify_alumnus(?,?,?)', [adm, a3, 'maybe']), 'verified or rejected');
+    await expectError('direct update without an admin rejected', () => q("UPDATE alumni_details SET verification_status = 'verified' WHERE alumni_id = ?", [a3]), 'Only an admin');
+    await q('CALL sp_verify_alumnus(?,?,?)', [adm, a3, 'verified']);
+    const vrow = await q('SELECT verification_status, verified_by, verified_at FROM alumni_details WHERE alumni_id = ?', [a3]);
+    ok('admin verification recorded with admin and time', vrow[0].verification_status === 'verified' && vrow[0].verified_by === adm && vrow[0].verified_at !== null);
+    await expectError('same decision twice rejected', () => q('CALL sp_verify_alumnus(?,?,?)', [adm, a3, 'verified']), 'already has that status');
+    const auditRows = await q("SELECT COUNT(*) AS c FROM audit_log WHERE action = 'alumni_verified' AND entity_id = ?", [a3]);
+    ok('verification written to the audit log', auditRows[0].c === 1);
+    const [recs4] = await q('CALL sp_recommend_mentors(?)', [s2]);
+    ok('verified alumnus now recommended', recs4.some(r => r.alumni_id === a3));
+
     await expectError('admin cannot be deleted', () => q('DELETE FROM users WHERE user_id = ?', [adm]), 'Admin accounts');
 
     await q('INSERT INTO sessions (user_id, token) VALUES (?, ?)', [s1, tag]);
     const sess = await q('SELECT expires_at FROM sessions WHERE user_id = ?', [s1]);
     ok('session expiry set by trigger', sess[0].expires_at !== null);
 
-    await q('DELETE FROM users WHERE user_id IN (?, ?, ?, ?)', [s1, s2, a1, a2]);
+    await q('DELETE FROM users WHERE user_id IN (?, ?, ?, ?, ?)', [s1, s2, a1, a2, a3]);
     const left = await q('SELECT (SELECT COUNT(*) FROM mentorship_requests WHERE student_id = ? OR alumni_id = ?) AS r, (SELECT COUNT(*) FROM meetings WHERE meeting_id = ?) AS m', [s1, a1, m1]);
     ok('cascade removes requests and meetings', left[0].r === 0 && left[0].m === 0);
     await q('UPDATE users SET role = ? WHERE user_id = ?', ['student', adm]);

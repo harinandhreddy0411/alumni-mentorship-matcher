@@ -238,7 +238,7 @@
     const NAV = {
         student: [['student-dashboard.html', 'Mentors'], ['messages.html', 'Messages'], ['meetings.html', 'Meetings'], ['profile.html', 'Profile']],
         alumni: [['alumni-dashboard.html', 'Overview'], ['messages.html', 'Messages'], ['meetings.html', 'Meetings'], ['manage-schedule.html', 'Availability'], ['profile.html', 'Profile']],
-        admin: [['admin-dashboard.html', 'Overview'], ['admin-users.html', 'Users'], ['admin-matches.html', 'Matches']]
+        admin: [['admin-dashboard.html', 'Overview'], ['admin-users.html', 'Users'], ['admin-alumni.html', 'Alumni'], ['admin-matches.html', 'Matches']]
     };
 
     function markup() {
