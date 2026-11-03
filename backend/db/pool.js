@@ -1,9 +1,7 @@
 require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
 const mysql = require('mysql2/promise');
 
-const caPath = path.join(__dirname, 'ca.pem');
+const sslOptions = require('./ssl');
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -14,7 +12,7 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     dateStrings: true,
-    ssl: fs.existsSync(caPath) ? { ca: fs.readFileSync(caPath) } : undefined
+    ssl: sslOptions()
 });
 
 pool.pool.on('connection', function (conn) {

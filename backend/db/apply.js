@@ -4,7 +4,7 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 
 const dir = path.join(__dirname, 'sql');
-const caPath = path.join(__dirname, 'ca.pem');
+const sslOptions = require('./ssl');
 
 function splitStatements(text) {
     const statements = [];
@@ -34,7 +34,7 @@ async function main() {
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
-        ssl: fs.existsSync(caPath) ? { ca: fs.readFileSync(caPath) } : undefined
+        ssl: sslOptions()
     });
     await conn.query(
         `CREATE TABLE IF NOT EXISTS schema_migrations (

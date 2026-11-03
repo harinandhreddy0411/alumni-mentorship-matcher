@@ -7,6 +7,7 @@ const pool = require('./db/pool');
 const app = express();
 
 const allowedOrigins = new Set(['https://harinandhreddy0411.github.io', 'null']);
+(process.env.ALLOWED_ORIGINS || '').split(',').map(o => o.trim()).filter(Boolean).forEach(o => allowedOrigins.add(o));
 const localOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
 
 app.use(cors({
